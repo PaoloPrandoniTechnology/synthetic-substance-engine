@@ -1,8 +1,9 @@
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
+import { summarizeSubstance, validateProfile } from "../../engine/catalog-api.js";
 import type { SubstanceRegistry } from "../../engine/registry.js";
-import { parseSubstance, type Substance, substanceDuration } from "../../engine/substance.js";
+import { substanceDuration } from "../../engine/substance.js";
 import { AppError } from "../../shared/errors.js";
 
 export interface SubstanceRouteDeps {
@@ -22,36 +23,6 @@ function notFound(id: string): AppError {
   });
 }
 
-/** Riassunto del profilo per la UI e per chi crea sostanze via API. */
-function summarize(substance: Substance) {
-  const logit = substance.distortions.logit;
-
-  return {
-    id: substance.id,
-    object: "substance",
-    name: substance.name,
-    family: substance.family,
-    intensity: substance.intensity,
-    durationSeconds: substanceDuration(substance),
-    phases: {
-      onsetSeconds: substance.onsetSeconds,
-      peakSeconds: substance.peakSeconds,
-      plateauSeconds: substance.plateauSeconds,
-      decaySeconds: substance.decaySeconds,
-    },
-    logit: logit
-      ? {
-          mode: logit.mode,
-          strength: logit.strength,
-          targetTokenizer: logit.targetTokenizer ?? null,
-          biasedTokens: logit.tokenIds.length,
-        }
-      : null,
-    effects: substance.effects,
-    contraindications: substance.contraindications,
-  };
-}
-
 function readYamlBody(body: unknown): string {
   const yaml = (body as { yaml?: unknown } | undefined)?.yaml;
 
@@ -65,28 +36,6 @@ function readYamlBody(body: unknown): string {
   }
 
   return yaml;
-}
-
-type ValidationResult = { ok: true; substance: Substance } | { ok: false; errors: string[] };
-
-/**
- * Valida con lo stesso loader usato all'avvio: schema, regole trasversali e
- * compilazione dei token logit. Non scrive nulla su disco.
- */
-function validateProfile(yaml: string): ValidationResult {
-  try {
-    return { ok: true, substance: parseSubstance(yaml, "profilo") };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const errors = message
-      .replace(/^profilo:\s*/, "")
-      .replace(/^profilo non valido →\s*/, "")
-      .split("; ")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-
-    return { ok: false, errors: errors.length > 0 ? errors : [message] };
-  }
 }
 
 async function readSource(dir: string, id: string): Promise<string | undefined> {
@@ -162,7 +111,7 @@ export function registerSubstanceRoutes(app: FastifyInstance, deps: SubstanceRou
     const result = validateProfile(readYamlBody(request.body));
 
     return result.ok
-      ? { ok: true, substance: summarize(result.substance) }
+      ? { ok: true, substance: summarizeSubstance(result.substance) }
       : { ok: false, errors: result.errors };
   });
 
@@ -200,7 +149,7 @@ export function registerSubstanceRoutes(app: FastifyInstance, deps: SubstanceRou
     return reply.status(existed ? 200 : 201).send({
       ok: true,
       created: !existed,
-      substance: summarize(result.substance),
+      substance: summarizeSubstance(result.substance),
     });
   });
 

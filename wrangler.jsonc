@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "synthetic-substance-engine-demo",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "rules": [{ "type": "Text", "globs": ["**/*.yaml"], "fallthrough": false }],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "synthetic-substance-engine-demo",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "observability": { "enabled": true }
+}

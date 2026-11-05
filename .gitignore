@@ -47,3 +47,6 @@ Thumbs.db
 
 # --- Freebuff ---
 # .freebuff/.gitignore esclude già project-id
+
+# --- Wrangler / state locale del Worker ---
+.wrangler/
