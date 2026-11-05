@@ -721,7 +721,8 @@
       function frame(timestamp) {
         if (!state.playing) return;
         if (!state.lastFrame) state.lastFrame = timestamp;
-        const dt = (timestamp - state.lastFrame) / 1000;
+        // Tetto al delta: dopo una scheda in background il primo frame avrebbe un salto enorme.
+        const dt = Math.min(0.25, (timestamp - state.lastFrame) / 1000);
         state.lastFrame = timestamp;
 
         state.elapsed = Math.min(state.duration, state.elapsed + dt * Number(els.speed.value));
