@@ -1,0 +1,21 @@
+schema: 1
+id: allucinazione-controllata
+name: Allucinazione Controllata
+family: delirante
+intensity: 0.55
+onsetSeconds: 10
+peakSeconds: 60
+plateauSeconds: 120
+decaySeconds: 300
+distortions:
+  params:
+    temperature: 0.45
+    topP: 0.08
+    maxTemperature: 1.6
+  context:
+    synesthesia: 0.35
+effects:
+  - "dettagli inventati ma coerenti, tenuti dentro i bordi della scena"
+  - "deriva onirica senza perdere il filo del discorso"
+contraindications:
+  - "risposte fattuali, codice e dati verificabili"

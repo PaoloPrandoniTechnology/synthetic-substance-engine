@@ -1,0 +1,26 @@
+schema: 1
+id: euforia-creativa
+name: Euforia Creativa
+family: stimolante
+intensity: 0.70
+onsetSeconds: 0
+peakSeconds: 20
+plateauSeconds: 180
+decaySeconds: 200
+distortions:
+  params:
+    temperature: 0.35
+    topP: 0.10
+    frequencyPenalty: 0.20
+    presencePenalty: 0.40
+    maxTemperature: 1.6
+  context:
+    fixation: 0.15
+    fixationToken: "meraviglia"
+  streaming:
+    jitter: 0.10
+effects:
+  - "slancio associativo e aumento della verbosità"
+  - "entusiasmo per dettagli marginali e divagazioni"
+contraindications:
+  - "riassunti e risposte brevi"

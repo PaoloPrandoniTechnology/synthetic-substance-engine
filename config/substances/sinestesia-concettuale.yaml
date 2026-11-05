@@ -1,0 +1,26 @@
+schema: 1
+id: sinestesia-concettuale
+name: Sinestesia Concettuale
+family: delirante
+intensity: 0.65
+onsetSeconds: 0
+peakSeconds: 45
+plateauSeconds: 150
+decaySeconds: 240
+distortions:
+  params:
+    temperature: 0.30
+    topP: 0.05
+    frequencyPenalty: 0.10
+    presencePenalty: 0.25
+    maxTemperature: 1.5
+  context:
+    synesthesia: 0.60
+  streaming:
+    jitter: 0.15
+  # logit disattivato: richiede token id verificati con il tokenizer target (skill 01)
+effects:
+  - "associazioni sincroniche tra domini sensoriali diversi"
+  - "metafore che mescolano suono, colore e forma"
+contraindications:
+  - "compiti che richiedono precisione fattuale"

@@ -1,0 +1,24 @@
+schema: 1
+id: fissazione-paranoica
+name: Fissazione Paranoica
+family: delirante
+intensity: 0.80
+onsetSeconds: 0
+peakSeconds: 25
+plateauSeconds: 200
+decaySeconds: 240
+distortions:
+  params:
+    temperature: 0.25
+    frequencyPenalty: 0.25
+    presencePenalty: 0.30
+    maxTemperature: 1.45
+  context:
+    fixation: 0.85
+    fixationToken: "occhio"
+    synesthesia: 0.20
+effects:
+  - "ritorno ossessivo su un unico concetto, senza spiegarlo"
+  - "sospetto e interpretazione allusiva dei dettagli"
+contraindications:
+  - "contenuti che richiedono tono neutro o rassicurante"

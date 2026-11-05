@@ -1,11 +1,20 @@
 import { loadConfig } from "./config.js";
+import { loadSubstances } from "./engine/registry.js";
+import { SessionStore } from "./engine/session.js";
 import { loadProvidersConfig } from "./providers/config.js";
 import { buildApp } from "./server/app.js";
 
 async function main(): Promise<void> {
   const config = loadConfig();
   const providers = await loadProvidersConfig(config.providersConfigPath);
-  const app = await buildApp({ config, providers });
+  const registry = await loadSubstances(config.substancesDir);
+  const app = await buildApp({
+    config,
+    providers,
+    registry,
+    sessions: new SessionStore(),
+    env: process.env,
+  });
 
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info({ signal }, "arresto del proxy richiesto");
@@ -17,7 +26,7 @@ async function main(): Promise<void> {
 
   await app.listen({ host: config.host, port: config.port });
   app.log.info(
-    { providerDiDefault: providers.default, sostanze: config.substancesDir },
+    { providerDiDefault: providers.default, sostanze: registry.size },
     "synthetic substance engine pronto",
   );
 }

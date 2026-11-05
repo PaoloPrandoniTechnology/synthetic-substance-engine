@@ -1,0 +1,21 @@
+schema: 1
+id: amnesia-anterograda
+name: Amnesia Anterograda
+family: dissociativo
+intensity: 0.75
+onsetSeconds: 5
+peakSeconds: 30
+plateauSeconds: 120
+decaySeconds: 180
+distortions:
+  params:
+    temperature: 0.10
+    presencePenalty: 0.15
+    maxTemperature: 1.3
+  context:
+    amnesia: 0.70
+effects:
+  - "perdita dei turni precedenti della conversazione"
+  - "risposte che ripartono da zero, come alla prima domanda"
+contraindications:
+  - "dialoghi che richiedono continuità e riferimenti al passato"
