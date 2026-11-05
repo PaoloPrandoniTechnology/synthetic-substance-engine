@@ -3,16 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Playground del Synthetic Substance Engine: dosa una sostanza sintetica, osserva la curva dose/tempo e vedi come cambiano i parametri reali del modello."
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#05070c" />
     <title>Playground · Synthetic Substance Engine</title>
     <style>
       :root {
-        --bg: #0b0d12;
-        --panel: #12161f;
-        --panel-2: #171c28;
-        --line: #222a3a;
-        --text: #e7eaf3;
-        --muted: #8791a8;
+        --bg: #05070c;
+        --panel: rgba(15, 19, 29, 0.72);
+        --panel-2: rgba(22, 28, 42, 0.66);
+        --line: rgba(255, 255, 255, 0.075);
+        --line-strong: rgba(255, 255, 255, 0.16);
+        --text: #e9edf7;
+        --muted: #8d97b1;
         --accent: #b47cff;
+        --accent-2: #7cf0ff;
+        --radius: 20px;
         color-scheme: dark;
       }
 
@@ -20,84 +29,485 @@
         box-sizing: border-box;
       }
 
-      body {
-        margin: 0;
-        background:
-          radial-gradient(1200px 600px at 85% -10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent),
-          var(--bg);
-        color: var(--text);
-        font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-        min-height: 100vh;
+      html {
+        scroll-behavior: smooth;
       }
 
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      ::selection {
+        background: color-mix(in srgb, var(--accent) 40%, transparent);
+        color: #fff;
+      }
+
+      /* ---------- sfondo: aurora, griglia, grana ---------- */
+
+      .bg {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .bg .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(90px);
+        opacity: 0.5;
+        mix-blend-mode: screen;
+        transition: background 0.6s ease;
+      }
+
+      .bg .orb-a {
+        width: 52vw;
+        height: 52vw;
+        min-width: 420px;
+        min-height: 420px;
+        top: -18vw;
+        right: -10vw;
+        background: radial-gradient(circle, var(--accent), transparent 68%);
+        animation: drift-a 26s ease-in-out infinite alternate;
+      }
+
+      .bg .orb-b {
+        width: 40vw;
+        height: 40vw;
+        min-width: 320px;
+        min-height: 320px;
+        top: 28vh;
+        left: -14vw;
+        background: radial-gradient(circle, var(--accent-2), transparent 70%);
+        opacity: 0.26;
+        animation: drift-b 32s ease-in-out infinite alternate;
+      }
+
+      .bg .orb-c {
+        width: 46vw;
+        height: 46vw;
+        bottom: -26vw;
+        left: 32vw;
+        background: radial-gradient(circle, rgba(124, 240, 255, 0.75), transparent 70%);
+        opacity: 0.12;
+        animation: drift-c 38s ease-in-out infinite alternate;
+      }
+
+      .bg .grid {
+        position: absolute;
+        inset: -80px;
+        background-image:
+          linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+        background-size: 68px 68px;
+        -webkit-mask-image: radial-gradient(ellipse 75% 55% at 50% 0%, #000 10%, transparent 78%);
+        mask-image: radial-gradient(ellipse 75% 55% at 50% 0%, #000 10%, transparent 78%);
+        opacity: 0.75;
+      }
+
+      .bg .grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.035;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+
+      @keyframes drift-a {
+        from {
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+        to {
+          transform: translate3d(-6vw, 5vh, 0) scale(1.12);
+        }
+      }
+
+      @keyframes drift-b {
+        from {
+          transform: translate3d(0, 0, 0) scale(1.05);
+        }
+        to {
+          transform: translate3d(8vw, -6vh, 0) scale(0.92);
+        }
+      }
+
+      @keyframes drift-c {
+        from {
+          transform: translate3d(0, 0, 0) scale(0.95);
+        }
+        to {
+          transform: translate3d(-5vw, -8vh, 0) scale(1.1);
+        }
+      }
+
+      /* ---------- testata ---------- */
+
       .top {
+        position: relative;
+        z-index: 1;
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 24px;
-        padding: 32px clamp(16px, 4vw, 48px) 8px;
         flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 32px;
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 38px clamp(16px, 3vw, 40px) 22px;
+      }
+
+      .brand {
+        display: flex;
+        gap: 18px;
+        max-width: 780px;
+      }
+
+      .mark {
+        display: grid;
+        flex: 0 0 auto;
+        place-items: center;
+        width: 54px;
+        height: 54px;
+        margin-top: 3px;
+        color: var(--accent);
+        border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--line));
+        border-radius: 17px;
+        background:
+          radial-gradient(120% 120% at 20% 0%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%),
+          rgba(12, 16, 25, 0.8);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.12),
+          0 18px 40px -24px var(--accent);
+        transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .mark svg {
+        width: 30px;
+        height: 30px;
+        filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 60%, transparent));
       }
 
       .eyebrow {
-        margin: 0 0 6px;
-        font-size: 11px;
-        letter-spacing: 0.16em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 8px;
+        font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.2em;
         text-transform: uppercase;
         color: var(--muted);
+      }
+
+      .pulse {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent);
+        animation: pulse 2.4s ease-out infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent);
+        }
+        70% {
+          box-shadow: 0 0 0 7px transparent;
+        }
+        100% {
+          box-shadow: 0 0 0 0 transparent;
+        }
       }
 
       h1 {
         margin: 0;
-        font-size: clamp(28px, 4vw, 40px);
-        letter-spacing: -0.02em;
+        font-size: clamp(32px, 4.6vw, 54px);
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        background: linear-gradient(104deg, #ffffff 8%, var(--accent) 52%, var(--accent-2) 96%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
       }
 
       .lede {
-        margin: 8px 0 0;
+        max-width: 62ch;
+        margin: 12px 0 0;
         color: var(--muted);
-        max-width: 58ch;
+        font-size: 15.5px;
       }
 
-      a.ghost,
-      a.ghost:visited {
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 18px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .stats li {
+        display: flex;
+        align-items: baseline;
+        gap: 7px;
+        padding: 7px 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012));
+        font-size: 11.5px;
         color: var(--muted);
+        letter-spacing: 0.02em;
+      }
+
+      .stats b {
+        font-size: 13px;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .actions {
+        display: grid;
+        justify-items: end;
+        gap: 14px;
+      }
+
+      /* ---------- legenda fasi ---------- */
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font: 500 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .legend i {
+        width: 7px;
+        height: 7px;
+        border-radius: 2px;
+        background: var(--c);
+        box-shadow: 0 0 8px color-mix(in srgb, var(--c) 60%, transparent);
+      }
+
+      .legend .phase-latente {
+        --c: #7c879e;
+      }
+
+      .legend .phase-salita {
+        --c: #ffb545;
+      }
+
+      .legend .phase-plateau {
+        --c: var(--accent);
+      }
+
+      .legend .phase-svanimento {
+        --c: #4fd1ff;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
         border: 1px solid var(--line);
         border-radius: 999px;
-        padding: 8px 14px;
-        font-size: 13px;
-        text-decoration: none;
-        background: var(--panel);
+        background: rgba(10, 13, 20, 0.6);
+        font: 500 11.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.06em;
+        color: var(--muted);
       }
 
-      a.ghost:hover {
-        color: var(--text);
-        border-color: var(--accent);
+      .status i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--muted);
       }
+
+      .status[data-state="ok"] i {
+        background: #5ee0a1;
+        box-shadow: 0 0 10px #5ee0a1;
+      }
+
+      .status[data-state="ok"] {
+        border-color: color-mix(in srgb, #5ee0a1 40%, var(--line));
+        color: #d7f7e6;
+      }
+
+      .status[data-state="off"] i {
+        background: #ff8b8b;
+        box-shadow: 0 0 10px #ff8b8b;
+      }
+
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015));
+        color: var(--muted);
+        font-size: 12.5px;
+        text-decoration: none;
+        transition: color 0.18s, border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+      }
+
+      .pill:hover {
+        color: var(--text);
+        border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+        transform: translateY(-1px);
+        box-shadow: 0 12px 26px -18px var(--accent);
+      }
+
+      .pill.github {
+        color: var(--text);
+        border-color: var(--line-strong);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), rgba(255, 255, 255, 0.03));
+      }
+
+      /* ---------- layout ---------- */
 
       main {
+        position: relative;
+        z-index: 1;
         display: grid;
-        grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
-        gap: 18px;
-        padding: 16px clamp(16px, 4vw, 48px) 48px;
+        gap: 20px;
+        align-content: start;
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 6px clamp(16px, 3vw, 40px) 28px;
+      }
+
+      /* La prima riga sta in un contenitore dedicato: così il catalogo sticky si
+         ferma alla fine della riga e non scivola sopra editor e chat. */
+      .workbench {
+        display: grid;
+        grid-template-columns: minmax(258px, 316px) minmax(0, 1fr);
+        gap: 20px;
         align-items: start;
       }
 
       .panel {
-        background: var(--panel);
+        position: relative;
+        padding: 18px;
         border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 16px;
+        border-radius: var(--radius);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.014) 38%, rgba(8, 11, 18, 0.72)),
+          rgba(9, 12, 19, 0.48);
+        backdrop-filter: blur(20px) saturate(1.25);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.06),
+          0 30px 70px -46px #000;
       }
 
-      .panel h2 {
-        margin: 0 0 12px;
-        font-size: 12px;
-        letter-spacing: 0.14em;
+      .panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        padding: 1px;
+        border-radius: inherit;
+        background: linear-gradient(
+          155deg,
+          color-mix(in srgb, var(--accent) 42%, transparent),
+          transparent 34%,
+          transparent 66%,
+          color-mix(in srgb, var(--accent-2) 22%, transparent)
+        );
+        -webkit-mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        mask-composite: exclude;
+        opacity: 0.65;
+        pointer-events: none;
+      }
+
+      .panel.wide {
+        grid-column: 1 / -1;
+      }
+
+      .catalog {
+        position: sticky;
+        top: 18px;
+      }
+
+      .panel-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0;
+        font: 600 11.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
         color: var(--muted);
-        font-weight: 600;
       }
+
+      .panel-title::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 10px var(--accent);
+      }
+
+      .stage {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+        min-width: 0;
+      }
+
+      /* ---------- catalogo ---------- */
 
       .substances {
         display: grid;
@@ -106,228 +516,608 @@
 
       .card {
         --card-accent: #b47cff;
-        text-align: left;
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 2px 10px;
         width: 100%;
+        padding: 12px 14px 12px 17px;
+        overflow: hidden;
+        font: inherit;
+        color: var(--text);
+        text-align: left;
         cursor: pointer;
         border: 1px solid var(--line);
-        border-left: 3px solid var(--card-accent);
-        background: var(--panel-2);
-        color: var(--text);
-        border-radius: 12px;
-        padding: 10px 12px;
-        font: inherit;
-        transition: border-color 0.15s, transform 0.15s, background 0.15s;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
+        transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+      }
+
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 12px;
+        bottom: 12px;
+        left: 0;
+        width: 3px;
+        border-radius: 999px;
+        background: var(--card-accent);
+        box-shadow: 0 0 14px var(--card-accent);
+        opacity: 0.8;
+      }
+
+      .card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          260px 100px at 0% 0%,
+          color-mix(in srgb, var(--card-accent) 26%, transparent),
+          transparent 72%
+        );
+        opacity: 0;
+        transition: opacity 0.22s ease;
+        pointer-events: none;
       }
 
       .card:hover {
-        transform: translateX(2px);
-        border-color: color-mix(in srgb, var(--card-accent) 55%, var(--line));
+        transform: translateY(-1px);
+        border-color: color-mix(in srgb, var(--card-accent) 50%, var(--line));
+        box-shadow: 0 16px 34px -24px var(--card-accent);
+      }
+
+      .card:hover::after {
+        opacity: 1;
       }
 
       .card[aria-pressed="true"] {
-        background: color-mix(in srgb, var(--card-accent) 14%, var(--panel-2));
-        border-color: var(--card-accent);
+        border-color: color-mix(in srgb, var(--card-accent) 72%, var(--line));
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--card-accent) 17%, transparent),
+          rgba(255, 255, 255, 0.02)
+        );
+        box-shadow:
+          inset 0 0 0 1px color-mix(in srgb, var(--card-accent) 22%, transparent),
+          0 18px 40px -26px var(--card-accent);
       }
 
       .card .name {
-        display: block;
+        position: relative;
+        z-index: 1;
         font-weight: 600;
+        letter-spacing: -0.01em;
       }
 
       .card .meta {
-        display: block;
-        font-size: 12px;
+        position: relative;
+        z-index: 1;
+        grid-column: 1;
+        font: 11.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.02em;
         color: var(--muted);
-        margin-top: 2px;
       }
 
-      .stage {
-        display: grid;
-        gap: 16px;
+      .card .meta::before {
+        content: "◆ ";
+        color: var(--card-accent);
+        font-size: 9px;
       }
+
+      .card-bar {
+        position: relative;
+        z-index: 1;
+        grid-column: 1 / -1;
+        height: 3px;
+        margin-top: 7px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.07);
+      }
+
+      .card-bar::after {
+        content: "";
+        display: block;
+        width: var(--v, 0%);
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(
+          90deg,
+          var(--card-accent),
+          color-mix(in srgb, var(--card-accent) 30%, transparent)
+        );
+      }
+
+      .footnote {
+        margin: 14px 0 0;
+        padding-top: 12px;
+        border-top: 1px dashed var(--line);
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: color-mix(in srgb, var(--muted) 85%, transparent);
+      }
+
+      /* ---------- controlli ---------- */
 
       .controls {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 18px 22px;
         align-items: end;
+        margin-bottom: 16px;
       }
 
       label.field {
         display: grid;
-        gap: 6px;
-        font-size: 12px;
+        gap: 9px;
+        margin: 0;
+        font: 600 10.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
         color: var(--muted);
       }
 
-      label.field b {
+      .field .value {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .field b {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
         color: var(--text);
         font-variant-numeric: tabular-nums;
+        text-transform: none;
+      }
+
+      .field .dim {
+        color: var(--muted);
+        font-weight: 500;
+        font-size: 12px;
       }
 
       input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
         width: 100%;
-        accent-color: var(--accent);
-      }
-
-      .row {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-
-      button.primary,
-      button.ghost {
+        height: 20px;
+        margin: 0;
+        background: transparent;
         cursor: pointer;
+      }
+
+      input[type="range"]:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+        outline-offset: 6px;
+        border-radius: 999px;
+      }
+
+      input[type="range"]::-webkit-slider-runnable-track {
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(
+          90deg,
+          var(--accent) 0 calc(var(--fill, 50%)),
+          rgba(255, 255, 255, 0.09) calc(var(--fill, 50%)) 100%
+        );
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.07),
+          0 0 18px -8px var(--accent);
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        margin-top: -5px;
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        border-radius: 50%;
+        background: radial-gradient(circle at 32% 28%, #fff, var(--accent) 72%);
+        box-shadow:
+          0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent),
+          0 0 18px color-mix(in srgb, var(--accent) 75%, transparent);
+        transition: transform 0.12s ease, box-shadow 0.2s ease;
+      }
+
+      input[type="range"]:hover::-webkit-slider-thumb {
+        transform: scale(1.12);
+        box-shadow:
+          0 0 0 6px color-mix(in srgb, var(--accent) 18%, transparent),
+          0 0 24px color-mix(in srgb, var(--accent) 85%, transparent);
+      }
+
+      input[type="range"]::-moz-range-track {
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(
+          90deg,
+          var(--accent) 0 calc(var(--fill, 50%)),
+          rgba(255, 255, 255, 0.09) calc(var(--fill, 50%)) 100%
+        );
+      }
+
+      input[type="range"]::-moz-range-thumb {
+        width: 15px;
+        height: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow:
+          0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent),
+          0 0 18px var(--accent);
+      }
+
+      /* ---------- pulsanti ---------- */
+
+      button {
+        position: relative;
+        overflow: hidden;
+        padding: 10px 15px;
         font: inherit;
-        border-radius: 10px;
-        padding: 9px 14px;
-        border: 1px solid var(--line);
-        background: var(--panel-2);
+        font-size: 13.5px;
         color: var(--text);
+        cursor: pointer;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+        transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.2s ease, background 0.2s ease;
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        border-color: var(--line-strong);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
+      }
+
+      button:active:not(:disabled) {
+        transform: translateY(0);
       }
 
       button.primary {
-        background: color-mix(in srgb, var(--accent) 26%, var(--panel-2));
-        border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
         font-weight: 600;
+        color: #fff;
+        border-color: color-mix(in srgb, var(--accent) 68%, var(--line));
+        background: linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--accent) 44%, #080b12),
+          color-mix(in srgb, var(--accent) 14%, #080b12)
+        );
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.2),
+          0 12px 30px -16px var(--accent);
+      }
+
+      button.primary::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.22), transparent 70%);
+        transform: translateX(-130%);
+        transition: transform 0.6s ease;
+        pointer-events: none;
+      }
+
+      button.primary:hover:not(:disabled)::after {
+        transform: translateX(130%);
+      }
+
+      button.primary:hover:not(:disabled) {
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.28),
+          0 16px 38px -14px var(--accent);
       }
 
       button:disabled {
-        opacity: 0.5;
+        opacity: 0.42;
         cursor: not-allowed;
       }
 
-      .gauge {
+      /* ---------- curva ---------- */
+
+      .curve {
+        position: relative;
+        padding: 10px 12px 4px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background:
+          radial-gradient(
+            120% 150% at 50% -30%,
+            color-mix(in srgb, var(--accent) 12%, transparent),
+            transparent 62%
+          ),
+          linear-gradient(180deg, #090c14, #06080e);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
+      .curve-meta {
         display: flex;
-        align-items: baseline;
-        gap: 10px;
         flex-wrap: wrap;
-      }
-
-      .percent {
-        font-size: 34px;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        font-variant-numeric: tabular-nums;
-      }
-
-      .badge {
-        font-size: 12px;
-        padding: 3px 9px;
-        border-radius: 999px;
-        border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--line));
-        background: color-mix(in srgb, var(--accent) 12%, transparent);
-        color: var(--text);
-        text-transform: lowercase;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 4px;
+        font: 500 9.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--muted) 75%, transparent);
       }
 
       canvas {
-        width: 100%;
-        height: 220px;
         display: block;
-        border-radius: 12px;
-        background: linear-gradient(180deg, #0e1219, #0b0f15);
-        border: 1px solid var(--line);
+        width: 100%;
+        height: 252px;
+      }
+
+      /* ---------- lettura ---------- */
+
+      .readout {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 22px;
+        margin-top: 18px;
+      }
+
+      .ring {
+        --pct: 0;
+        position: relative;
+        display: grid;
+        flex: 0 0 auto;
+        place-items: center;
+        width: 112px;
+        height: 112px;
+        border-radius: 50%;
+        background: conic-gradient(
+          from 210deg,
+          var(--accent) calc(var(--pct) * 1%),
+          rgba(255, 255, 255, 0.055) 0
+        );
+        box-shadow:
+          0 0 46px -16px color-mix(in srgb, var(--accent) 85%, transparent),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+        transition: background 0.35s linear;
+      }
+
+      .ring::before {
+        content: "";
+        position: absolute;
+        inset: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 50%;
+        background: radial-gradient(circle at 50% 12%, #161c29, #070a11 72%);
+        box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.75);
+      }
+
+      .percent {
+        position: relative;
+        z-index: 1;
+        font-size: 27px;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 24px color-mix(in srgb, var(--accent) 60%, transparent);
+      }
+
+      .readout-body {
+        display: grid;
+        flex: 1 1 300px;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--line));
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
+        color: var(--text);
+        font: 500 11.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.05em;
+        text-transform: lowercase;
+        white-space: nowrap;
+      }
+
+      .badge::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 8px var(--accent);
       }
 
       .summary {
         margin: 0;
-        padding: 12px 14px;
-        border-radius: 12px;
-        border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
-        background: color-mix(in srgb, var(--accent) 8%, var(--panel-2));
-        font-size: 14px;
+        padding: 13px 15px;
+        border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+        border-radius: 13px;
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--accent) 9%, transparent),
+          rgba(255, 255, 255, 0.01)
+        );
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: #dfe5f3;
       }
+
+      /* ---------- parametri ---------- */
 
       .grid-params {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
         gap: 8px;
+        margin-top: 16px;
       }
 
       .kv {
+        position: relative;
+        padding: 9px 11px 11px;
+        overflow: hidden;
         border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 8px 10px;
-        background: var(--panel-2);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012));
+        transition: border-color 0.2s ease, transform 0.2s ease;
+      }
+
+      .kv:hover {
+        transform: translateY(-1px);
+        border-color: var(--line-strong);
       }
 
       .kv span {
         display: block;
-        font-size: 11px;
-        letter-spacing: 0.06em;
+        font: 600 9.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.11em;
         text-transform: uppercase;
         color: var(--muted);
       }
 
       .kv b {
+        font-size: 16px;
+        letter-spacing: -0.015em;
         font-variant-numeric: tabular-nums;
-        font-size: 15px;
       }
 
-      .chat {
-        grid-column: 1 / -1;
+      .kv-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: var(--v, 0%);
+        height: 2px;
+        border-radius: 0 2px 2px 0;
+        background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 15%, transparent));
+        box-shadow: 0 0 12px var(--accent);
+        transition: width 0.28s ease;
       }
 
-      .chat-grid {
+      /* ---------- editor e chat ---------- */
+
+      .split {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 14px;
-      }
-
-      @media (max-width: 900px) {
-        main {
-          grid-template-columns: minmax(0, 1fr);
-        }
-        .chat-grid {
-          grid-template-columns: minmax(0, 1fr);
-        }
+        gap: 16px;
       }
 
       textarea,
       select {
         width: 100%;
+        padding: 11px 12px;
         font: inherit;
         color: var(--text);
-        background: var(--panel-2);
         border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 10px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
         resize: vertical;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      }
+
+      textarea:hover,
+      select:hover {
+        border-color: var(--line-strong);
+      }
+
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
       }
 
       textarea {
-        min-height: 92px;
+        min-height: 96px;
+      }
+
+      select {
+        appearance: none;
+        padding-right: 34px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%238d97b1' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 13px center;
+        cursor: pointer;
       }
 
       #yaml-editor {
-        min-height: 340px;
-        font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        min-height: 360px;
         white-space: pre;
         overflow: auto;
+        font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, "JetBrains Mono", monospace;
+        tab-size: 2;
       }
 
       pre.out {
         margin: 0;
-        min-height: 120px;
-        max-height: 280px;
+        min-height: 132px;
+        max-height: 300px;
+        padding: 13px;
         overflow: auto;
         white-space: pre-wrap;
         word-break: break-word;
-        font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
-        background: #0b0f15;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 12px;
         color: #cfd6e6;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background:
+          radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 60%),
+          #070a11;
+        font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, "JetBrains Mono", monospace;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
+      textarea::-webkit-scrollbar,
+      pre.out::-webkit-scrollbar {
+        width: 9px;
+        height: 9px;
+      }
+
+      textarea::-webkit-scrollbar-thumb,
+      pre.out::-webkit-scrollbar-thumb {
+        border: 2px solid transparent;
+        border-radius: 999px;
+        background-clip: padding-box;
+        background-color: rgba(255, 255, 255, 0.16);
+      }
+
+      textarea::-webkit-scrollbar-thumb:hover,
+      pre.out::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.26);
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-height: 26px;
       }
 
       .hint {
         margin: 0;
         font-size: 12px;
+        line-height: 1.55;
         color: var(--muted);
+      }
+
+      .hint code {
+        padding: 1px 5px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.05);
+        font: 11.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #c3cbe0;
+      }
+
+      .hint kbd {
+        padding: 1px 5px;
+        border: 1px solid var(--line-strong);
+        border-bottom-width: 2px;
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.07);
+        font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
       }
 
       .ok {
@@ -335,30 +1125,211 @@
       }
 
       .error {
-        color: #ff8b8b;
+        color: #ff9b9b;
+      }
+
+      .check {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      input[type="checkbox"] {
+        width: 15px;
+        height: 15px;
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
+
+      /* ---------- footer ---------- */
+
+      footer {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        max-width: 1560px;
+        margin: 0 auto;
+        padding: 6px clamp(16px, 3vw, 40px) 40px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      footer p {
+        margin: 0;
+      }
+
+      .foot-links {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .foot-links a {
+        color: var(--muted);
+        text-decoration: none;
+        border-bottom: 1px solid transparent;
+        transition: color 0.16s, border-color 0.16s;
+      }
+
+      .foot-links a:hover {
+        color: var(--text);
+        border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+      }
+
+      .foot-links span {
+        opacity: 0.35;
+      }
+
+      /* ---------- responsive ---------- */
+
+      @media (max-width: 1000px) {
+        .workbench {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .catalog {
+          position: static;
+        }
+
+        .actions {
+          justify-items: start;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .top {
+          padding-top: 26px;
+        }
+
+        .brand {
+          gap: 12px;
+        }
+
+        .mark {
+          width: 44px;
+          height: 44px;
+          border-radius: 14px;
+        }
+
+        .mark svg {
+          width: 24px;
+          height: 24px;
+        }
+
+        .split {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .readout {
+          gap: 16px;
+        }
+
+        .ring {
+          width: 96px;
+          height: 96px;
+        }
+
+        .percent {
+          font-size: 23px;
+        }
+
+        .panel {
+          padding: 15px;
+          border-radius: 17px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.001ms !important;
+        }
+
+        html {
+          scroll-behavior: auto;
+        }
       }
     </style>
   </head>
   <body>
+    <div class="bg" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+      <div class="grid"></div>
+      <div class="grain"></div>
+    </div>
+
     <header class="top">
-      <div>
-        <p class="eyebrow">Synthetic Substance Engine</p>
-        <h1>Playground</h1>
-        <p class="lede">
-          Dosa una sostanza sintetica e osserva la curva dose/tempo muovere le manopole del modello.
-          Tutto ciò che vedi arriva dalle stesse API che userebbe il tuo codice.
-        </p>
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 32 32"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M16 4.5 26 10v12L16 27.5 6 22V10z" opacity="0.5" />
+            <circle cx="16" cy="16" r="3.1" fill="currentColor" stroke="none" />
+            <circle cx="16" cy="7.6" r="1.7" />
+            <circle cx="23.8" cy="20.6" r="1.7" />
+            <circle cx="8.2" cy="20.6" r="1.7" />
+            <path d="M16 11.2v-1.9M13.4 18.1 9.9 20.2M18.6 18.1l3.5 2.1" opacity="0.8" />
+          </svg>
+        </span>
+        <div>
+          <p class="eyebrow"><span class="pulse"></span>Synthetic Substance Engine</p>
+          <h1>Playground</h1>
+          <p class="lede">
+            Dosa una sostanza sintetica e osserva la curva dose/tempo muovere le manopole del
+            modello. Ogni numero qui sotto arriva dalle stesse API che userebbe il tuo codice.
+          </p>
+          <ul class="stats">
+            <li><b id="stat-count">—</b><span>sostanze</span></li>
+            <li><b>90</b><span>campioni di curva</span></li>
+            <li><b>SSE</b><span>streaming pass-through</span></li>
+            <li><b>9</b><span>manopole applicate</span></li>
+          </ul>
+        </div>
       </div>
-      <div class="row">
-        <a class="ghost" href="/v1/substances" target="_blank" rel="noreferrer">Catalogo JSON</a>
-        <a class="ghost" href="/v1/models" target="_blank" rel="noreferrer">Modelli</a>
+
+      <div class="actions">
+        <span class="status" id="status" data-state="waiting">
+          <i></i><span id="status-text">connessione…</span>
+        </span>
+        <nav class="links" aria-label="Collegamenti">
+          <a class="pill" href="/v1/substances" target="_blank" rel="noreferrer">Catalogo JSON</a>
+          <a class="pill" href="/v1/models" target="_blank" rel="noreferrer">Modelli</a>
+          <a
+            class="pill github"
+            href="https://github.com/PaoloPrandoniTechnology/synthetic-substance-engine"
+            target="_blank"
+            rel="noreferrer"
+            >GitHub ↗</a
+          >
+        </nav>
       </div>
     </header>
 
     <main>
-      <section class="panel">
-        <div class="row" style="justify-content: space-between">
-          <h2>Catalogo</h2>
+      <div class="workbench">
+        <section class="panel catalog" aria-labelledby="catalog-title">
+        <div class="panel-head">
+          <h2 class="panel-title" id="catalog-title">Catalogo</h2>
           <div class="row">
             <button id="edit-substance" class="ghost" type="button" disabled>Modifica</button>
             <button id="new-substance" class="ghost" type="button">+ Nuova</button>
@@ -367,20 +1338,37 @@
         <div id="substances" class="substances">
           <p class="hint">Caricamento…</p>
         </div>
-      </section>
+          <p class="footnote">
+            Ogni voce è un profilo YAML: niente codice, solo dati. La barra sotto il nome è
+            l'intensità dichiarata nel profilo.
+          </p>
+        </section>
 
-      <section class="panel stage">
+        <section class="panel stage" aria-labelledby="dose-title">
+        <div class="panel-head">
+          <h2 class="panel-title" id="dose-title">Dosaggio</h2>
+          <div class="legend" aria-hidden="true">
+            <span class="phase-latente"><i></i>latente</span>
+            <span class="phase-salita"><i></i>salita</span>
+            <span class="phase-plateau"><i></i>plateau</span>
+            <span class="phase-svanimento"><i></i>svanimento</span>
+          </div>
+        </div>
+
         <div class="controls">
           <label class="field">
-            Dose <b id="dose-label">0.80</b>
+            <span class="value"><span>Dose</span><b id="dose-label">0.80</b></span>
             <input id="dose" type="range" min="0" max="1" step="0.05" value="0.8" />
           </label>
           <label class="field">
-            Tempo <b id="time-label">0 s</b> / <span id="duration-label">—</span>
+            <span class="value">
+              <span>Tempo</span>
+              <span><b id="time-label">0 s</b><span class="dim"> / <span id="duration-label">—</span></span></span>
+            </span>
             <input id="time" type="range" min="0" max="1" step="1" value="0" />
           </label>
           <label class="field">
-            Velocità
+            <span class="value"><span>Velocità</span></span>
             <select id="speed">
               <option value="1">1× (tempo reale)</option>
               <option value="8" selected>8×</option>
@@ -393,61 +1381,71 @@
           </div>
         </div>
 
-        <canvas id="curve" aria-label="Curva dell'effetto nel tempo"></canvas>
-
-        <div class="gauge">
-          <span id="percent" class="percent">—</span>
-          <span id="phase" class="badge">—</span>
-          <span class="hint" id="envelope-label"></span>
+        <div class="curve">
+          <div class="curve-meta">
+            <span>curva dose / tempo</span>
+            <span>90 campioni dall'API</span>
+          </div>
+          <canvas id="curve" aria-label="Curva dell'effetto nel tempo"></canvas>
         </div>
 
-        <div class="grid-params" id="params"></div>
+        <div class="readout">
+          <div class="ring" id="ring"><span id="percent" class="percent">—</span></div>
+          <div class="readout-body">
+            <div class="row">
+              <span id="phase" class="badge">—</span>
+              <span class="hint" id="envelope-label"></span>
+            </div>
+            <p class="summary" id="summary">Seleziona una sostanza per iniziare.</p>
+          </div>
+        </div>
 
-        <p class="summary" id="summary">Seleziona una sostanza per iniziare.</p>
-      </section>
+          <div class="grid-params" id="params"></div>
+        </section>
+      </div>
 
-      <section class="panel chat" id="editor" hidden>
-        <div class="row" style="justify-content: space-between">
-          <h2 id="editor-title">Modifica sostanza</h2>
+      <section class="panel wide" id="editor" hidden aria-labelledby="editor-title">
+        <div class="panel-head">
+          <h2 class="panel-title" id="editor-title">Modifica sostanza</h2>
           <button id="editor-close" class="ghost" type="button">Chiudi</button>
         </div>
-        <div class="chat-grid">
-          <div style="display: grid; gap: 10px">
+        <div class="split">
+          <div class="stack">
             <textarea id="yaml-editor" spellcheck="false" aria-label="Profilo YAML"></textarea>
-            <p class="hint" id="editor-status">
-              Il profilo viene validato prima del salvataggio.
-            </p>
+            <p class="hint" id="editor-status">Il profilo viene validato prima del salvataggio.</p>
             <div class="row">
-              <button id="editor-save" class="primary" type="button" disabled>
-                Salva profilo
-              </button>
+              <button id="editor-save" class="primary" type="button" disabled>Salva profilo</button>
               <button id="editor-reload" class="ghost" type="button">Ricarica</button>
+              <span class="hint"><kbd>Ctrl</kbd>+<kbd>S</kbd></span>
             </div>
           </div>
-          <div style="display: grid; gap: 10px">
+          <div class="stack">
             <pre id="editor-check" class="out">—</pre>
             <p class="hint">
               Il salvataggio passa dallo stesso schema e dalle stesse regole trasversali del loader
               (id kebab-case, durata &gt; 0, <code>maxTemperature</code> obbligatorio se alzi la
               temperature, <code>fixationToken</code> con la fissazione attiva), poi scrive
               <code>config/substances/&lt;id&gt;.yaml</code>: la sostanza è attiva subito, senza
-              riavviare il proxy. <kbd>Ctrl</kbd>+<kbd>S</kbd> salva.
+              riavviare il proxy.
             </p>
           </div>
         </div>
       </section>
 
-      <section class="panel chat">
-        <h2>Prova una richiesta</h2>
-        <div class="chat-grid">
-          <div style="display: grid; gap: 10px">
-            <select id="model">
+      <section class="panel wide" aria-labelledby="chat-title">
+        <div class="panel-head">
+          <h2 class="panel-title" id="chat-title">Prova una richiesta</h2>
+          <span class="hint">la dose viaggia in header, non nel body</span>
+        </div>
+        <div class="split">
+          <div class="stack">
+            <select id="model" aria-label="Modello">
               <option value="">Caricamento modelli…</option>
             </select>
-            <textarea id="prompt">Scrivi tre righe su cosa vedi quando chiudi gli occhi.</textarea>
+            <textarea id="prompt" aria-label="Prompt">Scrivi tre righe su cosa vedi quando chiudi gli occhi.</textarea>
             <div class="row">
               <button id="send" class="primary" type="button">Invia con la sostanza attiva</button>
-              <label class="hint"><input id="stream" type="checkbox" checked /> streaming</label>
+              <label class="check"><input id="stream" type="checkbox" checked /> streaming</label>
             </div>
             <p class="hint">
               Gli header <code>X-Substance-Id</code>, <code>X-Dose</code> e
@@ -455,13 +1453,24 @@
               dosando qui sopra.
             </p>
           </div>
-          <div style="display: grid; gap: 10px">
-            <div class="row" id="chips"></div>
+          <div class="stack">
+            <div class="row chips" id="chips"></div>
             <pre id="out" class="out">La risposta comparirà qui.</pre>
           </div>
         </div>
       </section>
     </main>
+
+    <footer>
+      <p>Progetto creativo e artistico: le «sostanze» sono profili di parametri, non sostanze reali.</p>
+      <p class="foot-links">
+        <a href="https://github.com/PaoloPrandoniTechnology/synthetic-substance-engine" target="_blank" rel="noreferrer">Repository</a>
+        <span>·</span>
+        <a href="/v1/substances" target="_blank" rel="noreferrer">API catalogo</a>
+        <span>·</span>
+        <a href="/healthz" target="_blank" rel="noreferrer">Health</a>
+      </p>
+    </footer>
 
     <script>
       const FAMILY_COLORS = {
@@ -469,6 +1478,15 @@
         dissociativo: "#4fd1ff",
         delirante: "#b47cff",
         sedativo: "#5ee0a1",
+      };
+
+      /** Colori delle fasi: il plateau usa l'accento della famiglia. */
+      const PHASES = {
+        latente: { color: "#7c879e", label: "latente" },
+        salita: { color: "#ffb545", label: "salita" },
+        plateau: { color: null, label: "plateau" },
+        svanimento: { color: "#4fd1ff", label: "svanimento" },
+        fine: { color: "#465066", label: "fine" },
       };
 
       const SAMPLE_COUNT = 90;
@@ -486,6 +1504,7 @@
         reset: document.getElementById("reset"),
         canvas: document.getElementById("curve"),
         percent: document.getElementById("percent"),
+        ring: document.getElementById("ring"),
         phase: document.getElementById("phase"),
         envelopeLabel: document.getElementById("envelope-label"),
         params: document.getElementById("params"),
@@ -506,6 +1525,9 @@
         editorReload: document.getElementById("editor-reload"),
         editSubstance: document.getElementById("edit-substance"),
         newSubstance: document.getElementById("new-substance"),
+        status: document.getElementById("status"),
+        statusText: document.getElementById("status-text"),
+        statCount: document.getElementById("stat-count"),
       };
 
       const state = {
@@ -533,8 +1555,57 @@
         return (n > 0 ? "+" : "") + fmt(n, 2);
       }
 
+      function clamp01(value) {
+        return Math.max(0, Math.min(1, Number(value) || 0));
+      }
+
+      function accentColor() {
+        return (
+          getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#b47cff"
+        );
+      }
+
+      function hexWithAlpha(hex, alpha) {
+        const clean = String(hex).replace("#", "");
+        const full =
+          clean.length === 3
+            ? clean
+                .split("")
+                .map((char) => char + char)
+                .join("")
+            : clean;
+        const r = Number.parseInt(full.slice(0, 2), 16) || 0;
+        const g = Number.parseInt(full.slice(2, 4), 16) || 0;
+        const b = Number.parseInt(full.slice(4, 6), 16) || 0;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+
       function setAccent(family) {
         document.documentElement.style.setProperty("--accent", FAMILY_COLORS[family] ?? "#b47cff");
+      }
+
+      /** Riempie la parte sinistra del binario dello slider con l'accento. */
+      function paintRange(input) {
+        if (!input) return;
+        const min = Number(input.min || 0);
+        const max = Number(input.max || 100);
+        const value = Number(input.value);
+        const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
+        input.style.setProperty("--fill", `${Math.max(0, Math.min(100, pct))}%`);
+      }
+
+      async function checkHealth() {
+        try {
+          const res = await fetch("/healthz");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const body = await res.json();
+          els.status.dataset.state = "ok";
+          els.statusText.textContent =
+            body.mode === "demo-read-only" ? "demo · sola lettura" : "motore attivo";
+        } catch {
+          els.status.dataset.state = "off";
+          els.statusText.textContent = "offline";
+        }
       }
 
       async function loadCatalog(preferredId) {
@@ -548,6 +1619,7 @@
         }
 
         els.substances.innerHTML = "";
+        els.statCount.textContent = String(state.catalog.length);
 
         for (const substance of state.catalog) {
           const button = document.createElement("button");
@@ -555,12 +1627,18 @@
           button.className = "card";
           button.style.setProperty("--card-accent", FAMILY_COLORS[substance.family] ?? "#b47cff");
           button.setAttribute("aria-pressed", "false");
-          button.innerHTML =
-            '<span class="name"></span><span class="meta"></span>';
+          button.innerHTML = '<span class="name"></span><span class="meta"></span>';
           button.querySelector(".name").textContent = substance.name;
           button.querySelector(".meta").textContent = `${substance.family} · ${Math.round(
             substance.durationSeconds,
           )} s`;
+
+          const bar = document.createElement("span");
+          bar.className = "card-bar";
+          bar.setAttribute("aria-hidden", "true");
+          bar.style.setProperty("--v", `${Math.round(clamp01(substance.intensity) * 100)}%`);
+          button.appendChild(bar);
+
           button.addEventListener("click", () => selectSubstance(substance));
           button.dataset.id = substance.id;
           els.substances.appendChild(button);
@@ -613,6 +1691,7 @@
         els.durationLabel.textContent = `${state.duration} s`;
         els.time.max = String(state.duration);
         els.time.value = "0";
+        paintRange(els.time);
 
         for (const button of els.substances.querySelectorAll(".card")) {
           button.setAttribute("aria-pressed", String(button.dataset.id === substance.id));
@@ -656,7 +1735,7 @@
         const canvas = els.canvas;
         const dpr = window.devicePixelRatio || 1;
         const width = canvas.clientWidth || 640;
-        const height = canvas.clientHeight || 220;
+        const height = canvas.clientHeight || 252;
 
         if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
           canvas.width = Math.round(width * dpr);
@@ -668,120 +1747,223 @@
         return { ctx, width, height };
       }
 
-      function pointAt(index, width, height) {
-        const pad = 10;
-        const x = pad + ((width - pad * 2) * index) / Math.max(1, SAMPLE_COUNT - 1);
-        const value = Math.max(0, Math.min(1, state.samples[index].envelope));
-        const y = height - pad - (height - pad * 2) * value;
-        return { x, y };
+      function closestIndex() {
+        if (state.samples.length === 0) return 0;
+        const ratio = state.duration > 0 ? state.elapsed / state.duration : 0;
+        return Math.max(
+          0,
+          Math.min(state.samples.length - 1, Math.round(ratio * (state.samples.length - 1))),
+        );
+      }
+
+      function phaseColor(phase, accent) {
+        const entry = PHASES[phase];
+        if (!entry) return accent;
+        return entry.color ?? accent;
       }
 
       function draw() {
         const { ctx, width, height } = dimensions();
         ctx.clearRect(0, 0, width, height);
 
-        ctx.strokeStyle = "rgba(255,255,255,0.06)";
-        ctx.lineWidth = 1;
-        for (let line = 1; line < 4; line += 1) {
-          const y = (height * line) / 4;
+        const accent = accentColor();
+        const top = 20;
+        const bottom = 26;
+        const left = 14;
+        const right = 46;
+        const plotW = Math.max(1, width - left - right);
+        const plotH = Math.max(1, height - top - bottom);
+
+        const xAt = (index) => left + (plotW * index) / Math.max(1, SAMPLE_COUNT - 1);
+        const yAt = (value) => top + plotH - plotH * clamp01(value);
+
+        const mono =
+          'ui-monospace, SFMono-Regular, Menlo, "JetBrains Mono", monospace';
+
+        // griglia orizzontale con scala a destra
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+        ctx.font = `500 9.5px ${mono}`;
+
+        for (let step = 0; step <= 4; step += 1) {
+          const value = 1 - step / 4;
+          const y = yAt(value);
           ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(width, y);
+          ctx.setLineDash(value === 0 ? [] : [3, 7]);
+          ctx.strokeStyle = value === 0 ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.055)";
+          ctx.lineWidth = 1;
+          ctx.moveTo(left, y);
+          ctx.lineTo(left + plotW, y);
           ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = "rgba(178,188,210,0.5)";
+          ctx.fillText(`${Math.round(value * 100)}%`, left + plotW + 9, y);
         }
+
+        ctx.fillStyle = "rgba(178,188,210,0.42)";
+        ctx.textAlign = "left";
+        ctx.fillText("0 s", left, height - 10);
+        ctx.textAlign = "right";
+        ctx.fillText(`${state.duration} s`, left + plotW, height - 10);
 
         if (state.samples.length === 0) return;
 
-        const accent = getComputedStyle(document.documentElement)
-          .getPropertyValue("--accent")
-          .trim() || "#b47cff";
+        // bande delle fasi: mostrano dove sei nella curva, con i dati reali
+        let start = 0;
+        for (let index = 1; index <= state.samples.length; index += 1) {
+          const phase = state.samples[start].phase;
+          const same = index < state.samples.length && state.samples[index].phase === phase;
+          if (same) continue;
 
-        const points = state.samples.map((_, index) => pointAt(index, width, height));
+          const color = phaseColor(phase, accent);
+          const x0 = xAt(start);
+          const x1 = xAt(index - 1);
 
+          ctx.fillStyle = hexWithAlpha(color, 0.05);
+          ctx.fillRect(x0, top, Math.max(1, x1 - x0), plotH);
+
+          if (x1 - x0 > 52) {
+            ctx.fillStyle = hexWithAlpha(color, 0.55);
+            ctx.font = `600 8.5px ${mono}`;
+            ctx.textAlign = "center";
+            ctx.fillText((PHASES[phase]?.label ?? phase).toUpperCase(), (x0 + x1) / 2, top + 10);
+          }
+
+          start = index;
+        }
+
+        const points = state.samples.map((sample, index) => ({
+          x: xAt(index),
+          y: yAt(sample.envelope),
+        }));
+
+        // area sotto la curva
+        const gradient = ctx.createLinearGradient(0, top, 0, top + plotH);
+        gradient.addColorStop(0, hexWithAlpha(accent, 0.34));
+        gradient.addColorStop(1, hexWithAlpha(accent, 0));
         ctx.beginPath();
-        ctx.moveTo(points[0].x, height);
+        ctx.moveTo(points[0].x, top + plotH);
         for (const point of points) ctx.lineTo(point.x, point.y);
-        ctx.lineTo(points[points.length - 1].x, height);
+        ctx.lineTo(points[points.length - 1].x, top + plotH);
         ctx.closePath();
-        const fill = ctx.createLinearGradient(0, 0, 0, height);
-        fill.addColorStop(0, `${accent}55`);
-        fill.addColorStop(1, `${accent}00`);
-        ctx.fillStyle = fill;
+        ctx.fillStyle = gradient;
         ctx.fill();
 
+        // linea
         ctx.beginPath();
         points.forEach((point, index) => {
           if (index === 0) ctx.moveTo(point.x, point.y);
           else ctx.lineTo(point.x, point.y);
         });
-        ctx.strokeStyle = accent;
-        ctx.lineWidth = 2;
         ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = accent;
+        ctx.shadowColor = hexWithAlpha(accent, 0.85);
+        ctx.shadowBlur = 16;
         ctx.stroke();
+        ctx.shadowBlur = 0;
 
-        const marker = state.samples[closestIndex()];
-        const position = pointAt(closestIndex(), width, height);
+        // cursore temporale
+        const index = closestIndex();
+        const position = points[index];
+
         ctx.beginPath();
-        ctx.arc(position.x, position.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = accent;
-        ctx.fill();
-        ctx.strokeStyle = "#0b0d12";
-        ctx.lineWidth = 2;
+        ctx.setLineDash([2, 4]);
+        ctx.strokeStyle = hexWithAlpha(accent, 0.34);
+        ctx.lineWidth = 1;
+        ctx.moveTo(position.x, top);
+        ctx.lineTo(position.x, top + plotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.beginPath();
+        ctx.arc(position.x, position.y, 11, 0, Math.PI * 2);
+        ctx.strokeStyle = hexWithAlpha(accent, 0.32);
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        ctx.font = "12px ui-sans-serif, system-ui, sans-serif";
-        ctx.fillStyle = "rgba(231,234,243,0.75)";
-        const label = `${Math.round(marker.percent)}%`;
-        const textWidth = ctx.measureText(label).width;
-        ctx.fillText(label, Math.min(width - textWidth - 8, position.x + 10), Math.max(16, position.y - 10));
-      }
+        ctx.beginPath();
+        ctx.arc(position.x, position.y, 5.5, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowColor = accent;
+        ctx.shadowBlur = 16;
+        ctx.fill();
+        ctx.shadowBlur = 0;
 
-      function closestIndex() {
-        if (state.samples.length === 0) return 0;
-        const ratio = state.duration > 0 ? state.elapsed / state.duration : 0;
-        return Math.max(0, Math.min(state.samples.length - 1, Math.round(ratio * (state.samples.length - 1))));
+        // etichetta percentuale
+        const label = `${Math.round(state.samples[index].percent)}%`;
+        ctx.font = "600 11px ui-sans-serif, system-ui, sans-serif";
+        const labelWidth = ctx.measureText(label).width + 16;
+        const boxX = Math.max(left, Math.min(left + plotW - labelWidth, position.x - labelWidth / 2));
+        const boxY = Math.max(top + 2, position.y - 34);
+
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") ctx.roundRect(boxX, boxY, labelWidth, 20, 6);
+        else ctx.rect(boxX, boxY, labelWidth, 20);
+        ctx.fillStyle = "rgba(7,10,17,0.9)";
+        ctx.fill();
+        ctx.strokeStyle = hexWithAlpha(accent, 0.5);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = "#eef2ff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, boxX + labelWidth / 2, boxY + 10);
       }
 
       function renderReadout() {
         const sample = state.samples[closestIndex()];
         els.timeLabel.textContent = `${Math.round(state.elapsed)} s`;
         els.doseLabel.textContent = fmt(state.dose, 2);
+        paintRange(els.time);
 
         if (!sample) return;
 
         els.percent.textContent = `${Math.round(sample.percent)}%`;
+        els.ring.style.setProperty("--pct", String(Math.max(0, Math.min(100, sample.percent))));
         els.phase.textContent = sample.phase;
-        els.envelopeLabel.textContent = `inviluppo ${fmt(sample.envelope, 3)} · dose ${fmt(sample.dose, 2)}`;
+        els.envelopeLabel.textContent = `inviluppo ${fmt(sample.envelope, 3)} · dose ${fmt(
+          sample.dose,
+          2,
+        )}`;
         els.summary.textContent = sample.summary;
         els.summary.classList.remove("error");
 
         const applied = sample.applied;
         const rows = [
-          ["temperatura", signed(applied.temperature)],
-          ["top_p", signed(applied.topP)],
-          ["presence", signed(applied.presencePenalty)],
-          ["frequency", signed(applied.frequencyPenalty)],
-          ["amnesia", `${Math.round(applied.amnesia * 100)}%`],
-          ["fissazione", `${Math.round(applied.fixation * 100)}%`],
-          ["sinestesia", `${Math.round(applied.synesthesia * 100)}%`],
+          ["temperatura", signed(applied.temperature), Math.abs(applied.temperature) / 0.6],
+          ["top_p", signed(applied.topP), Math.abs(applied.topP) / 0.2],
+          ["presence", signed(applied.presencePenalty), Math.abs(applied.presencePenalty) / 0.6],
+          ["frequency", signed(applied.frequencyPenalty), Math.abs(applied.frequencyPenalty) / 0.6],
+          ["amnesia", `${Math.round(applied.amnesia * 100)}%`, applied.amnesia],
+          ["fissazione", `${Math.round(applied.fixation * 100)}%`, applied.fixation],
+          ["sinestesia", `${Math.round(applied.synesthesia * 100)}%`, applied.synesthesia],
           [
             "logit",
-            applied.logitMode === "off"
-              ? "—"
-              : `${applied.logitMode} ${fmt(applied.logitStrength, 2)}`,
+            applied.logitMode === "off" ? "—" : `${applied.logitMode} ${fmt(applied.logitStrength, 2)}`,
+            applied.logitStrength,
           ],
-          ["jitter", fmt(applied.jitter, 2)],
+          ["jitter", fmt(applied.jitter, 2), applied.jitter * 12],
         ];
 
         els.params.innerHTML = "";
-        for (const [key, value] of rows) {
+        for (const [key, value, ratio] of rows) {
           const box = document.createElement("div");
           box.className = "kv";
+
           const name = document.createElement("span");
           name.textContent = key;
+
           const bold = document.createElement("b");
           bold.textContent = value;
-          box.append(name, bold);
+
+          const bar = document.createElement("i");
+          bar.className = "kv-bar";
+          bar.style.setProperty("--v", `${Math.round(clamp01(ratio) * 100)}%`);
+
+          box.append(name, bold, bar);
           els.params.appendChild(box);
         }
       }
@@ -845,6 +2027,7 @@
       els.dose.addEventListener("input", () => {
         state.dose = Number(els.dose.value);
         els.doseLabel.textContent = fmt(state.dose, 2);
+        paintRange(els.dose);
         scheduleSample(160);
       });
 
@@ -1039,6 +2222,7 @@ contraindications:
           state.dose = dose;
           els.dose.value = String(dose);
           els.doseLabel.textContent = fmt(dose, 2);
+          paintRange(els.dose);
           scheduleSample(0);
         }
 
@@ -1164,6 +2348,8 @@ contraindications:
         }
       });
 
+      paintRange(els.dose);
+      checkHealth();
       loadCatalog();
       loadModels();
     </script>
