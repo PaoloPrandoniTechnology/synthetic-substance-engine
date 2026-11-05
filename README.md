@@ -23,6 +23,19 @@ frase. Questo progetto rende quello spostamento **un'API**: una dose, una curva,
 *Il catalogo si modifica dal browser: validazione continua e salvataggio in
 `config/substances/<id>.yaml`.*
 
+## Demo online
+
+**<https://site-3741923a3d7a49f29889fbd005591e89.freebuff.page>** — lo stesso playground, ospitato su
+Cloudflare Workers: catalogo, curva e referto arrivano dal motore vero, non da dati finti.
+
+Cosa funziona: dosaggio, curva, referto e editor YAML con validazione. Le sostanze che crei o
+modifichi restano nel **tuo** catalogo (un cookie, una riga in D1) e non toccano quello degli altri
+visitatori. Cosa non funziona: la chat, che richiede un provider reale e una chiave.
+
+Il proxy Node resta quello di sempre; la demo è un target separato (`src/worker/`) che espone le
+stesse rotte su un runtime senza disco, con i profili del repo compilati nel bundle e le modifiche in
+D1. `pnpm build:worker` produce il pacchetto da pubblicare.
+
 ## La metafora, presa sul serio
 
 Un LLM non ha neurotrasmettitori. Ha qualcosa di più noioso e molto più sfruttabile: una
@@ -92,6 +105,7 @@ Una sostanza non è un interruttore: ha **latenza** (onset), **salita** (peak), 
 ## Indice
 
 - [Uno sguardo](#uno-sguardo)
+- [Demo online](#demo-online)
 - [La metafora, presa sul serio](#la-metafora-presa-sul-serio)
 - [Perché funziona davvero](#perché-funziona-davvero)
 - [Farmacologia, non magia](#farmacologia-non-magia)
