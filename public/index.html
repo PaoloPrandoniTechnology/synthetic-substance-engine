@@ -572,8 +572,11 @@
           return;
         }
 
-        const target = state.catalog.find((item) => item.id === preferredId) ?? state.catalog[0];
+        const params = new URLSearchParams(window.location.search);
+        const wanted = preferredId ?? params.get("substance");
+        const target = state.catalog.find((item) => item.id === wanted) ?? state.catalog[0];
         selectSubstance(target);
+        applyDeepLink();
       }
 
       async function loadModels() {
@@ -1024,7 +1027,35 @@ contraindications:
           }
         }
 
-        els.editor.scrollIntoView({ behavior: "smooth", block: "start" });
+        els.editor.scrollIntoView({ block: "start" });
+      }
+
+      /** Link condivisibile: ?substance=..&dose=..&elapsed=..&edit=.. apre già lo stato scelto. */
+      function applyDeepLink() {
+        const params = new URLSearchParams(window.location.search);
+        const dose = params.has("dose") ? Number(params.get("dose")) : Number.NaN;
+
+        if (Number.isFinite(dose) && dose >= 0 && dose <= 1) {
+          state.dose = dose;
+          els.dose.value = String(dose);
+          els.doseLabel.textContent = fmt(dose, 2);
+          scheduleSample(0);
+        }
+
+        const elapsed = params.has("elapsed") ? Number(params.get("elapsed")) : Number.NaN;
+
+        if (Number.isFinite(elapsed) && elapsed >= 0) {
+          state.elapsed = Math.min(state.duration, elapsed);
+          els.time.value = String(Math.round(state.elapsed));
+          renderReadout();
+          draw();
+        }
+
+        const edit = params.get("edit");
+
+        if (edit) {
+          void openEditor(edit);
+        }
       }
 
       function closeEditor() {

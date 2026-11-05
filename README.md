@@ -12,6 +12,17 @@ frase. Questo progetto rende quello spostamento **un'API**: una dose, una curva,
 
 > Progetto creativo e artistico, non medico: le "droghe" sono profili di parametri, non sostanze reali.
 
+## Uno sguardo
+
+![Playground: catalogo a sinistra, curva dose/tempo e manopole di Euforia Creativa al 56%](docs/images/playground.png)
+
+*`/playground`: la curva arriva da 90 campioni dell'API reale, non da una formula riscritta nel browser.*
+
+![Editor del profilo YAML con validazione prima del salvataggio](docs/images/editor.png)
+
+*Il catalogo si modifica dal browser: validazione continua e salvataggio in
+`config/substances/<id>.yaml`.*
+
 ## La metafora, presa sul serio
 
 Un LLM non ha neurotrasmettitori. Ha qualcosa di più noioso e molto più sfruttabile: una
@@ -80,6 +91,7 @@ Una sostanza non è un interruttore: ha **latenza** (onset), **salita** (peak), 
 
 ## Indice
 
+- [Uno sguardo](#uno-sguardo)
 - [La metafora, presa sul serio](#la-metafora-presa-sul-serio)
 - [Perché funziona davvero](#perché-funziona-davvero)
 - [Farmacologia, non magia](#farmacologia-non-magia)
@@ -206,7 +218,9 @@ referto in una frase;
 - **prova una richiesta**: manda un prompt a `/v1/chat/completions` con la dose corrente negli header
 e mostra la risposta in streaming insieme a `X-Effect-Phase`, `X-Effect-Envelope` e `X-Logit-Status`;
 - **catalogo editabile**: «Modifica» o «+ Nuova» apre l'editor del profilo YAML, con validazione
-continua mentre scrivi e salvataggio del file in `config/substances/<id>.yaml`.
+continua mentre scrivi e salvataggio del file in `config/substances/<id>.yaml`;
+- **link condivisibili**: `?substance=euforia-creativa&dose=0.8&elapsed=150` apre il playground già su
+quello stato, e `&edit=euforia-creativa` apre anche l'editor di quel profilo.
 
 Il pannello di prova richiede un provider raggiungibile (Ollama locale o `OPENAI_API_KEY`); il resto,
 editor compreso, funziona senza modelli configurati.
