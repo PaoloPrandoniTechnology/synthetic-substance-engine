@@ -46,7 +46,7 @@ export async function buildApp({
   registerHealthRoutes(app);
   registerModelRoutes(app, providers);
   registerPlaygroundRoutes(app);
-  registerSubstanceRoutes(app, registry);
+  registerSubstanceRoutes(app, { registry, substancesDir: config.substancesDir });
   registerReportRoutes(app, { registry, sessions });
   registerChatCompletionsRoute(app, { providers, registry, sessions, caps, env, sleep });
 

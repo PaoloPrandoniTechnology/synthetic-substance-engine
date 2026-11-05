@@ -11,6 +11,10 @@ esistente funziona senza modifiche e, senza header di dosaggio, il proxy è un p
 | GET | `/playground` | interfaccia web per dosare dal browser (`/` reindirizza qui) |
 | GET | `/v1/models` | catalogo modelli, id nel formato `provider/modello` |
 | GET | `/v1/substances` | catalogo sostanze (nome, famiglia, durata, effetti) |
+| GET | `/v1/substances/:id/source` | profilo YAML grezzo dell'editor |
+| POST | `/v1/substances/validate` | valida un profilo senza salvarlo |
+| PUT | `/v1/substances/:id` | crea o aggiorna un profilo (201 nuovo, 200 esistente) |
+| DELETE | `/v1/substances/:id` | elimina profilo e file su disco |
 | GET | `/v1/substances/:id/trip-report` | referto simulato: `?dose=0..1` e `?elapsed=secondi` |
 | GET | `/v1/sessions/:id/trip-report` | referto della sessione reale (timer e richieste) |
 | POST | `/v1/chat/completions` | proxy chat, `stream: true` supportato |
@@ -114,6 +118,29 @@ Risposta con `phase`, `envelope`, `percent`, `applied` (delta concreti di ogni d
   "summary": "Euforia Creativa — plateau (56%) · dose 0.8 · 60s dall'inizio: temperatura +0.2, presence 0.22, fissazione 2%."
 }
 ```
+
+## Catalogo modificabile
+
+Il playground crea e aggiorna sostanze senza riavviare il proxy. Il profilo passa dallo **stesso
+loader dell'avvio** (schema Zod, regole trasversali, compilazione dei token logit) e solo dopo la
+validazione viene scritto in `config/substances/<id>.yaml` in modo atomico.
+
+```bash
+# prova a secco: nessuna scrittura
+curl -X POST http://127.0.0.1:8787/v1/substances/validate \
+  -H "content-type: application/json" \
+  -d '{"yaml": "schema: 1\nid: prova\nname: Prova\n"}'
+# → { "ok": false, "errors": ["id: id in kebab-case", ...] }
+
+# salva: 201 se è nuovo, 200 se sostituisce un profilo esistente
+curl -X PUT http://127.0.0.1:8787/v1/substances/prova \
+  -H "content-type: application/json" \
+  -d '{"yaml": "schema: 1\nid: prova\n..."}'
+```
+
+Codici di errore: `invalid_body` (manca `yaml`), `invalid_substance` (schema o regole violate, con
+l'elenco dei problemi nel messaggio), `id_mismatch` (l'id del profilo non coincide con il percorso),
+`substance_not_found` (sostanza inesistente).
 
 ## Tetti non aggirabili dai profili
 

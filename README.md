@@ -204,10 +204,12 @@ esattamente il calcolo del server, non una formula duplicata nel browser;
 - **manopole**: temperatura, `top_p`, penalty, amnesia, fissazione, sinestesia, logit e jitter, con il
 referto in una frase;
 - **prova una richiesta**: manda un prompt a `/v1/chat/completions` con la dose corrente negli header
-e mostra la risposta in streaming insieme a `X-Effect-Phase`, `X-Effect-Envelope` e `X-Logit-Status`.
+e mostra la risposta in streaming insieme a `X-Effect-Phase`, `X-Effect-Envelope` e `X-Logit-Status`;
+- **catalogo editabile**: «Modifica» o «+ Nuova» apre l'editor del profilo YAML, con validazione
+continua mentre scrivi e salvataggio del file in `config/substances/<id>.yaml`.
 
-Il pannello di prova richiede un provider raggiungibile (Ollama locale o `OPENAI_API_KEY`); il resto
-funziona senza modelli configurati.
+Il pannello di prova richiede un provider raggiungibile (Ollama locale o `OPENAI_API_KEY`); il resto,
+editor compreso, funziona senza modelli configurati.
 
 ## Prima chiamata
 
@@ -252,6 +254,10 @@ Togli l'header `x-substance-id` e ottieni il modello normale: il proxy diventa i
 | GET | `/healthz` | stato del servizio |
 | GET | `/v1/models` | catalogo modelli, id `provider/modello` |
 | GET | `/v1/substances` | catalogo sostanze (nome, famiglia, durata, effetti) |
+| GET | `/v1/substances/:id/source` | profilo YAML grezzo, usato dall'editor del playground |
+| POST | `/v1/substances/validate` | valida un profilo senza salvarlo (`{"yaml": "..."}`) |
+| PUT | `/v1/substances/:id` | crea o aggiorna un profilo e lo rende attivo subito |
+| DELETE | `/v1/substances/:id` | elimina il profilo e il suo file YAML |
 | GET | `/v1/substances/:id/trip-report` | referto simulato con `?dose=` e `?elapsed=` |
 | GET | `/v1/sessions/:id/trip-report` | referto della sessione reale, con conteggio richieste |
 | POST | `/v1/chat/completions` | proxy chat, `stream: true` supportato |
@@ -323,10 +329,11 @@ scartate (FastAPI, Axum, Go) in [`docs/ARCHITETTURA.md`](./docs/ARCHITETTURA.md)
 pnpm test       # suite completa: unit + integrazione HTTP
 ```
 
-Stato attuale (**M6**): proxy con streaming SSE e **jitter ritmico** deterministico, motore sostanze
+Stato attuale (**M7**): proxy con streaming SSE e **jitter ritmico** deterministico, motore sostanze
 con curva dose/tempo, distorsori `params`, `context`, `logit` con **tokenizer reale** (`cl100k_base`,
 `o200k_base`), catalogo `/v1/substances`, **trip report** per sostanza e per sessione, cinque profili
-inclusi e un **playground web** su `/playground` per dosare dal browser.
+inclusi e un **playground web** su `/playground` per dosare dal browser e **modificare i profili**
+con validazione prima del salvataggio.
 
 ## Sicurezza e limiti
 
@@ -351,8 +358,8 @@ inclusi e un **playground web** su `/playground` per dosare dal browser.
 
 ## Roadmap
 
-- **M7** — catalogo sostanze editabile dal playground, con validazione prima del salvataggio
-- **M7** — persistenza delle sessioni e metriche per sostanza
+- **M8** — persistenza delle sessioni e metriche per sostanza
+- **M8** — export e import del catalogo completo in un singolo file
 
 ---
 

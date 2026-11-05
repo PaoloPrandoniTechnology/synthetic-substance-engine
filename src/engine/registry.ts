@@ -4,10 +4,12 @@ import { parseSubstance, type Substance } from "./substance.js";
 
 /** Catalogo immutabile dei profili sostanza caricati all'avvio. */
 export class SubstanceRegistry {
-  private readonly byId: ReadonlyMap<string, Substance>;
+  private readonly byId = new Map<string, Substance>();
 
   constructor(substances: readonly Substance[] = []) {
-    this.byId = new Map(substances.map((substance) => [substance.id, substance]));
+    for (const substance of substances) {
+      this.byId.set(substance.id, substance);
+    }
   }
 
   get(id: string): Substance | undefined {
@@ -20,6 +22,15 @@ export class SubstanceRegistry {
 
   list(): Substance[] {
     return [...this.byId.values()];
+  }
+
+  /** Aggiunge o sostituisce un profilo: il catalogo si aggiorna senza riavviare il proxy. */
+  upsert(substance: Substance): void {
+    this.byId.set(substance.id, substance);
+  }
+
+  remove(id: string): boolean {
+    return this.byId.delete(id);
   }
 
   get size(): number {

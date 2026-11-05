@@ -302,6 +302,13 @@
         min-height: 92px;
       }
 
+      #yaml-editor {
+        min-height: 340px;
+        font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        white-space: pre;
+        overflow: auto;
+      }
+
       pre.out {
         margin: 0;
         min-height: 120px;
@@ -321,6 +328,10 @@
         margin: 0;
         font-size: 12px;
         color: var(--muted);
+      }
+
+      .ok {
+        color: #7ee2a8;
       }
 
       .error {
@@ -346,7 +357,13 @@
 
     <main>
       <section class="panel">
-        <h2>Catalogo</h2>
+        <div class="row" style="justify-content: space-between">
+          <h2>Catalogo</h2>
+          <div class="row">
+            <button id="edit-substance" class="ghost" type="button" disabled>Modifica</button>
+            <button id="new-substance" class="ghost" type="button">+ Nuova</button>
+          </div>
+        </div>
         <div id="substances" class="substances">
           <p class="hint">Caricamento…</p>
         </div>
@@ -387,6 +404,37 @@
         <div class="grid-params" id="params"></div>
 
         <p class="summary" id="summary">Seleziona una sostanza per iniziare.</p>
+      </section>
+
+      <section class="panel chat" id="editor" hidden>
+        <div class="row" style="justify-content: space-between">
+          <h2 id="editor-title">Modifica sostanza</h2>
+          <button id="editor-close" class="ghost" type="button">Chiudi</button>
+        </div>
+        <div class="chat-grid">
+          <div style="display: grid; gap: 10px">
+            <textarea id="yaml-editor" spellcheck="false" aria-label="Profilo YAML"></textarea>
+            <p class="hint" id="editor-status">
+              Il profilo viene validato prima del salvataggio.
+            </p>
+            <div class="row">
+              <button id="editor-save" class="primary" type="button" disabled>
+                Salva profilo
+              </button>
+              <button id="editor-reload" class="ghost" type="button">Ricarica</button>
+            </div>
+          </div>
+          <div style="display: grid; gap: 10px">
+            <pre id="editor-check" class="out">—</pre>
+            <p class="hint">
+              Il salvataggio passa dallo stesso schema e dalle stesse regole trasversali del loader
+              (id kebab-case, durata &gt; 0, <code>maxTemperature</code> obbligatorio se alzi la
+              temperature, <code>fixationToken</code> con la fissazione attiva), poi scrive
+              <code>config/substances/&lt;id&gt;.yaml</code>: la sostanza è attiva subito, senza
+              riavviare il proxy. <kbd>Ctrl</kbd>+<kbd>S</kbd> salva.
+            </p>
+          </div>
+        </div>
       </section>
 
       <section class="panel chat">
@@ -448,6 +496,16 @@
         stream: document.getElementById("stream"),
         chips: document.getElementById("chips"),
         out: document.getElementById("out"),
+        editor: document.getElementById("editor"),
+        editorTitle: document.getElementById("editor-title"),
+        editorClose: document.getElementById("editor-close"),
+        yamlEditor: document.getElementById("yaml-editor"),
+        editorStatus: document.getElementById("editor-status"),
+        editorCheck: document.getElementById("editor-check"),
+        editorSave: document.getElementById("editor-save"),
+        editorReload: document.getElementById("editor-reload"),
+        editSubstance: document.getElementById("edit-substance"),
+        newSubstance: document.getElementById("new-substance"),
       };
 
       const state = {
@@ -461,6 +519,7 @@
         lastFrame: 0,
         sampleToken: 0,
         sampleTimer: 0,
+        editor: { id: null, valid: false, saving: false, timer: 0, token: 0 },
       };
 
       function fmt(value, digits = 2) {
@@ -478,7 +537,7 @@
         document.documentElement.style.setProperty("--accent", FAMILY_COLORS[family] ?? "#b47cff");
       }
 
-      async function loadCatalog() {
+      async function loadCatalog(preferredId) {
         try {
           const res = await fetch("/v1/substances");
           const body = await res.json();
@@ -507,9 +566,14 @@
           els.substances.appendChild(button);
         }
 
-        if (state.catalog.length > 0) {
-          selectSubstance(state.catalog[0]);
+        if (state.catalog.length === 0) {
+          els.substances.innerHTML = '<p class="hint">Nessuna sostanza: creane una con «+ Nuova».</p>';
+          els.editSubstance.disabled = true;
+          return;
         }
+
+        const target = state.catalog.find((item) => item.id === preferredId) ?? state.catalog[0];
+        selectSubstance(target);
       }
 
       async function loadModels() {
@@ -542,6 +606,7 @@
         state.playing = false;
         els.play.textContent = "▶ Riproduci";
         setAccent(substance.family);
+        els.editSubstance.disabled = false;
         els.durationLabel.textContent = `${state.duration} s`;
         els.time.max = String(state.duration);
         els.time.value = "0";
@@ -896,6 +961,176 @@
       els.send.addEventListener("click", send);
       els.prompt.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) send();
+      });
+
+      const NEW_SUBSTANCE = `schema: 1
+id: nuova-sostanza
+name: Nuova Sostanza
+family: delirante
+intensity: 0.6
+onsetSeconds: 10
+peakSeconds: 30
+plateauSeconds: 120
+decaySeconds: 90
+distortions:
+  params:
+    temperature: 0.3
+    topP: 0.05
+    maxTemperature: 1.6
+  context:
+    amnesia: 0.1
+  streaming:
+    jitter: 0.05
+effects:
+  - "primo effetto osservabile"
+contraindications:
+  - "risposte fattuali"
+`;
+
+      function editorStatus(text, tone) {
+        els.editorStatus.textContent = text;
+        els.editorStatus.classList.toggle("error", tone === "error");
+        els.editorStatus.classList.toggle("ok", tone === "ok");
+      }
+
+      function editorDetail(text, tone) {
+        els.editorCheck.textContent = text;
+        els.editorCheck.classList.toggle("error", tone === "error");
+      }
+
+      async function openEditor(id) {
+        state.editor.id = id ?? null;
+        state.editor.valid = false;
+        state.editor.token += 1;
+        window.clearTimeout(state.editor.timer);
+        els.editor.hidden = false;
+        els.editorSave.disabled = true;
+        els.editorTitle.textContent = id ? `Modifica ${id}` : "Nuova sostanza";
+        editorDetail("—");
+        editorStatus("Validazione in corso…");
+
+        if (!id) {
+          els.yamlEditor.value = NEW_SUBSTANCE;
+          await validateEditor();
+        } else {
+          try {
+            const res = await fetch(`/v1/substances/${encodeURIComponent(id)}/source`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            els.yamlEditor.value = await res.text();
+            await validateEditor();
+          } catch (error) {
+            editorStatus(`Profilo non leggibile: ${error.message}`, "error");
+            editorDetail("Controlla che il file esista in config/substances.", "error");
+          }
+        }
+
+        els.editor.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function closeEditor() {
+        window.clearTimeout(state.editor.timer);
+        state.editor.token += 1;
+        state.editor.valid = false;
+        els.editor.hidden = true;
+      }
+
+      function scheduleValidate() {
+        window.clearTimeout(state.editor.timer);
+        state.editor.timer = window.setTimeout(() => void validateEditor(), 300);
+      }
+
+      async function validateEditor() {
+        const token = ++state.editor.token;
+        const yaml = els.yamlEditor.value;
+        state.editor.valid = false;
+        els.editorSave.disabled = true;
+        editorStatus("Validazione in corso…");
+
+        try {
+          const res = await fetch("/v1/substances/validate", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ yaml }),
+          });
+          const body = await res.json();
+          if (token !== state.editor.token) return;
+
+          if (!body.ok) {
+            editorStatus("Profilo non valido: correggi gli errori per salvare.", "error");
+            editorDetail((body.errors ?? []).map((item) => `• ${item}`).join("\n"), "error");
+            return;
+          }
+
+          const substance = body.substance;
+          const phases = substance.phases;
+          state.editor.valid = true;
+          state.editor.id = substance.id;
+          els.editorSave.disabled = false;
+          els.editorTitle.textContent = substance.id;
+          editorStatus(
+            `✓ valido · ${substance.name} · ${substance.family} · ${substance.durationSeconds} s`,
+            "ok",
+          );
+          editorDetail(
+            [
+              `fasi: ${phases.onsetSeconds}s latenza · ${phases.peakSeconds}s salita · ${phases.plateauSeconds}s plateau · ${phases.decaySeconds}s svanimento`,
+              `intensità ${fmt(substance.intensity, 2)}`,
+              substance.logit
+                ? `logit: ${substance.logit.mode} ${fmt(substance.logit.strength, 2)} · ${substance.logit.biasedTokens} token`
+                : "logit: nessuno",
+              `file: ${substance.id}.yaml`,
+            ].join("\n"),
+          );
+        } catch (error) {
+          editorStatus(`Validazione non disponibile: ${error.message}`, "error");
+        }
+      }
+
+      async function saveEditor() {
+        if (!state.editor.valid || !state.editor.id || state.editor.saving) return;
+
+        state.editor.saving = true;
+        els.editorSave.disabled = true;
+        const id = state.editor.id;
+
+        try {
+          const res = await fetch(`/v1/substances/${encodeURIComponent(id)}`, {
+            method: "PUT",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ yaml: els.yamlEditor.value }),
+          });
+          const body = await res.json();
+
+          if (!res.ok) {
+            editorStatus(`Salvataggio rifiutato: ${body?.error?.message ?? res.status}`, "error");
+            return;
+          }
+
+          closeEditor();
+          await loadCatalog(id);
+        } catch (error) {
+          editorStatus(`Salvataggio fallito: ${error.message}`, "error");
+        } finally {
+          state.editor.saving = false;
+          els.editorSave.disabled = !state.editor.valid;
+        }
+      }
+
+      els.editSubstance.addEventListener("click", () => {
+        if (state.current) void openEditor(state.current.id);
+      });
+      els.newSubstance.addEventListener("click", () => void openEditor());
+      els.editorClose.addEventListener("click", closeEditor);
+      els.editorReload.addEventListener("click", () => {
+        if (state.editor.id) void openEditor(state.editor.id);
+      });
+      els.editorSave.addEventListener("click", () => void saveEditor());
+      els.yamlEditor.addEventListener("input", scheduleValidate);
+      els.yamlEditor.addEventListener("keydown", (event) => {
+        if (event.key === "s" && (event.metaKey || event.ctrlKey)) {
+          event.preventDefault();
+          void saveEditor();
+        }
       });
 
       loadCatalog();

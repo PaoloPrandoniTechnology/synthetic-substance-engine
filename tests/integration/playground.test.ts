@@ -50,6 +50,8 @@ describe("playground", () => {
     expect(response.body).toContain("<title>Playground");
     expect(response.body).toContain('id="curve"');
     expect(response.body).toContain("/v1/chat/completions");
+    expect(response.body).toContain('id="yaml-editor"');
+    expect(response.body).toContain("/v1/substances/validate");
   });
 
   it("manda la radice al playground", async () => {
