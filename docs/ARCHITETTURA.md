@@ -7,17 +7,17 @@
 
 ## 1. Vincoli che guidano la scelta dello stack
 
-Dal brief (`CLAUDE.md`, sezione *Scopo e architettura*):
+Dal brief (`CLAUDE.md`, sezione _Scopo e architettura_):
 
-| Requisito | Implicazione tecnica |
-|---|---|
-| Proxy OpenAI-compatible ad alte prestazioni | HTTP server con overhead minimo, keep-alive, **pass-through SSE in streaming** senza buffering |
-| Modulazione parametrica nel tempo (onset → picco → svanimento) | Motore di stato per sessione, calcolo deterministico delle curve a ogni richiesta |
-| Logit / semantic noise | Manipolazione di `logit_bias`, `temperature`, `top_p`, penalties; tokenizzazione per mappare token→id |
-| Context & perception distorter | Riscrittura prompt e history (amnesia, fissazioni, sinestesia) prima dell'invio all'upstream |
-| Client eterogenei (web UI, videogiochi, app terze) | Protocollo standard HTTP/JSON + SSE: nessuna dipendenza da runtime specifico |
-| Sostanze come "contenuto" dichiarativo | Profili in **YAML** validati con schema, estendibili senza toccare il codice |
-| Uso creativo (artisti, scrittori, game designer) | Playground web in fase 2, profili esportabili, "trip report" leggibile |
+| Requisito                                                      | Implicazione tecnica                                                                                  |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Proxy OpenAI-compatible ad alte prestazioni                    | HTTP server con overhead minimo, keep-alive, **pass-through SSE in streaming** senza buffering        |
+| Modulazione parametrica nel tempo (onset → picco → svanimento) | Motore di stato per sessione, calcolo deterministico delle curve a ogni richiesta                     |
+| Logit / semantic noise                                         | Manipolazione di `logit_bias`, `temperature`, `top_p`, penalties; tokenizzazione per mappare token→id |
+| Context & perception distorter                                 | Riscrittura prompt e history (amnesia, fissazioni, sinestesia) prima dell'invio all'upstream          |
+| Client eterogenei (web UI, videogiochi, app terze)             | Protocollo standard HTTP/JSON + SSE: nessuna dipendenza da runtime specifico                          |
+| Sostanze come "contenuto" dichiarativo                         | Profili in **YAML** validati con schema, estendibili senza toccare il codice                          |
+| Uso creativo (artisti, scrittori, game designer)               | Playground web in fase 2, profili esportabili, "trip report" leggibile                                |
 
 Vincoli pratici dell'ambiente verificati:
 
@@ -29,25 +29,25 @@ Vincoli pratici dell'ambiente verificati:
 
 ## 2. Stack raccomandato — TypeScript su Node 24 + Fastify 5
 
-| Livello | Scelta | Perché |
-|---|---|---|
-| Runtime | **Node.js 24 LTS** | `fetch`/undici nativo con streaming Web API, HTTP/2, stabile su Windows |
-| Linguaggio | **TypeScript 5.x, `strict`** | Il contratto OpenAI (request/response/SSE chunk) è tipizzabile: errori di forma intercettati a compile-time |
-| HTTP server | **Fastify 5** | ~2–3× il throughput di Express, schema validation integrata, plugin di lifecycle ideali per la catena di distorsione |
-| Streaming | `undici` + `ReadableStream` nativi, `reply.raw` pipe | Zero buffering: ogni chunk SSE viene alterato e inoltrato subito (latenza per-token ~costante) |
-| Validazione | **Zod** (request, profili sostanza, config provider) | Unica fonte di verità per schema + tipi; messaggi d'errore compatibili con il formato `{"error": {...}}` OpenAI |
-| Profili sostanze | **YAML** (`yaml`) + schema Zod | Editing creativo senza ricompilare; diff leggibili in Git; validazione all'avvio/`/admin` |
-| Config runtime | `dotenv` + `.env.example` | Nessun segreto nel repo |
-| Logging/telemetria | **pino** (+ `pino-pretty` in dev) | Log JSON strutturati, latenza per fase, correlation id per sessione |
-| Test | **Vitest** + `fastify.inject()` + mock SSE upstream | Test rapidi sul proxy senza rete; snapshot dei payload alterati |
-| Qualità | **Biome** (lint + format, un solo tool) | Un binario, zero conflitti Prettier/ESLint, ~50 ms |
-| Package manager | **pnpm workspaces** | Repo pronto ad accogliere `apps/web` (fase 2) e `packages/sdk` senza migrazioni |
-| Tokenizzazione (opz.) | `tiktoken` (tokenizer OpenAI) / `@huggingface/transformers` | Necessaria per costruire `logit_bias` per token e misurare "distanza semantica" |
-| Fase 2 UI | **React 19 + Vite + TanStack Query** | Playground sostanze, grafici delle curve, streaming visibile |
+| Livello               | Scelta                                                      | Perché                                                                                                               |
+| --------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Runtime               | **Node.js 24 LTS**                                          | `fetch`/undici nativo con streaming Web API, HTTP/2, stabile su Windows                                              |
+| Linguaggio            | **TypeScript 5.x, `strict`**                                | Il contratto OpenAI (request/response/SSE chunk) è tipizzabile: errori di forma intercettati a compile-time          |
+| HTTP server           | **Fastify 5**                                               | ~2–3× il throughput di Express, schema validation integrata, plugin di lifecycle ideali per la catena di distorsione |
+| Streaming             | `undici` + `ReadableStream` nativi, `reply.raw` pipe        | Zero buffering: ogni chunk SSE viene alterato e inoltrato subito (latenza per-token ~costante)                       |
+| Validazione           | **Zod** (request, profili sostanza, config provider)        | Unica fonte di verità per schema + tipi; messaggi d'errore compatibili con il formato `{"error": {...}}` OpenAI      |
+| Profili sostanze      | **YAML** (`yaml`) + schema Zod                              | Editing creativo senza ricompilare; diff leggibili in Git; validazione all'avvio/`/admin`                            |
+| Config runtime        | `dotenv` + `.env.example`                                   | Nessun segreto nel repo                                                                                              |
+| Logging/telemetria    | **pino** (+ `pino-pretty` in dev)                           | Log JSON strutturati, latenza per fase, correlation id per sessione                                                  |
+| Test                  | **Vitest** + `fastify.inject()` + mock SSE upstream         | Test rapidi sul proxy senza rete; snapshot dei payload alterati                                                      |
+| Qualità               | **Biome** (lint + format, un solo tool)                     | Un binario, zero conflitti Prettier/ESLint, ~50 ms                                                                   |
+| Package manager       | **pnpm workspaces**                                         | Repo pronto ad accogliere `apps/web` (fase 2) e `packages/sdk` senza migrazioni                                      |
+| Tokenizzazione (opz.) | `tiktoken` (tokenizer OpenAI) / `@huggingface/transformers` | Necessaria per costruire `logit_bias` per token e misurare "distanza semantica"                                      |
+| Fase 2 UI             | **React 19 + Vite + TanStack Query**                        | Playground sostanze, grafici delle curve, streaming visibile                                                         |
 
 ### Perché non le alternative
 
-- **Python 3.12 + FastAPI** — eccellente per ML (numpy, tokenizers HF, transformers) ma: streaming SSE e concorrenza I/O pesante richiedono attenzione (uvloop/anyio), l'ecosistema web/game client è JS, e per la UI servirebbe comunque un secondo processo TypeScript. Resta la scelta migliore **solo** se il progetto virerà su manipolazione logit *vera* in-process (motori locali, PyTorch).
+- **Python 3.12 + FastAPI** — eccellente per ML (numpy, tokenizers HF, transformers) ma: streaming SSE e concorrenza I/O pesante richiedono attenzione (uvloop/anyio), l'ecosistema web/game client è JS, e per la UI servirebbe comunque un secondo processo TypeScript. Resta la scelta migliore **solo** se il progetto virerà su manipolazione logit _vera_ in-process (motori locali, PyTorch).
 - **Rust + Axum** — massime prestazioni e latenza minima, ma tempi di iterazione e costo di sviluppo molto alti per una piattaforma ancora in esplorazione creativa.
 - **Go + chi** — ottimo proxy, ma tipi/schema dei payload OpenAI e la futura UI rendono il ciclo più lento.
 
@@ -161,14 +161,14 @@ Fase 2 (dopo il proxy funzionante) si aggiunge solo:
 
 ## 5. Roadmap di scaffolding proposta
 
-| Passo | Contenuto | Output verificabile |
-|---|---|---|
-| M1 | Scaffolding pnpm + TS + Fastify, `/healthz`, `/v1/models` | `pnpm dev` risponde, test verde |
-| M2 | Pass-through SSE verso Ollama/LM Studio con mock upstream | test integrazione streaming |
-| M3 | Engine sostanze + `sinestesia-concettuale.yaml` + `/v1/substances` | curva dose/tempo testata |
-| M4 | Distorters `params` e `context` (amnesia, fissazione) | snapshot payload alterati |
-| M5 | `logit` distorter + adattatore tokenizzatore opzionale | `logit_bias` valido per upstream che lo supporta |
-| M6 | Telemetria, trip report, script `new-substance` | smoke test end-to-end `scripts/smoke-proxy.ts` |
+| Passo | Contenuto                                                          | Output verificabile                              |
+| ----- | ------------------------------------------------------------------ | ------------------------------------------------ |
+| M1    | Scaffolding pnpm + TS + Fastify, `/healthz`, `/v1/models`          | `pnpm dev` risponde, test verde                  |
+| M2    | Pass-through SSE verso Ollama/LM Studio con mock upstream          | test integrazione streaming                      |
+| M3    | Engine sostanze + `sinestesia-concettuale.yaml` + `/v1/substances` | curva dose/tempo testata                         |
+| M4    | Distorters `params` e `context` (amnesia, fissazione)              | snapshot payload alterati                        |
+| M5    | `logit` distorter + adattatore tokenizzatore opzionale             | `logit_bias` valido per upstream che lo supporta |
+| M6    | Telemetria, trip report, script `new-substance`                    | smoke test end-to-end `scripts/smoke-proxy.ts`   |
 
 ---
 
