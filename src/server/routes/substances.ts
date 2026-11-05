@@ -80,6 +80,7 @@ function validateProfile(yaml: string): ValidationResult {
     const message = error instanceof Error ? error.message : String(error);
     const errors = message
       .replace(/^profilo:\s*/, "")
+      .replace(/^profilo non valido →\s*/, "")
       .split("; ")
       .map((item) => item.trim())
       .filter((item) => item.length > 0);
