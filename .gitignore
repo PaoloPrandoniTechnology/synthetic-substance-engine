@@ -1,0 +1,49 @@
+# --- Segreti / ambiente ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# --- Node / TypeScript ---
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+.turbo/
+pnpm-debug.log*
+npm-debug.log*
+yarn-error.log*
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env.py
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# --- Dati locali / artefatti ---
+data/local/
+logs/
+*.log
+*.sqlite
+*.sqlite3
+*.db
+tmp/
+.cache/
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Freebuff ---
+# .freebuff/.gitignore esclude già project-id
