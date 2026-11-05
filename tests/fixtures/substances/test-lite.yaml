@@ -22,5 +22,8 @@ distortions:
         bias: 10
       - id: 200
         bias: -5
+  streaming:
+    jitter: 0.5
+    seed: 7
 effects:
   - "profilo di test deterministico"

@@ -26,6 +26,7 @@ const payload = {
 let app: FastifyInstance;
 let registry: SubstanceRegistry;
 const fetchMock = vi.fn();
+const sleepDelays: number[] = [];
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -62,6 +63,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   fetchMock.mockReset();
+  sleepDelays.splice(0);
   vi.stubGlobal("fetch", fetchMock);
   app = await buildApp({
     config: loadConfig({}),
@@ -70,6 +72,9 @@ beforeEach(async () => {
     sessions: new SessionStore(() => 1_000_000),
     logger: false,
     env: {},
+    sleep: async (ms) => {
+      sleepDelays.push(ms);
+    },
   });
 });
 
@@ -154,6 +159,28 @@ describe("POST /v1/chat/completions", () => {
     expect(response.headers["content-type"]).toBe("text/event-stream");
     expect(response.body).toBe(chunks.join(""));
     expect(forwardedBody().stream).toBe(true);
+  });
+
+  it("applica il jitter al ritmo senza alterare i chunk", async () => {
+    const chunks = [
+      'data: {"choices":[{"delta":{"content":"a"}}]}\n\n',
+      'data: {"choices":[{"delta":{"content":"b"}}]}\n\n',
+      "data: [DONE]\n\n",
+    ];
+    fetchMock.mockResolvedValue(sseResponse(chunks));
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/chat/completions",
+      headers: { "x-substance-id": "test-lite" },
+      payload: { ...payload, stream: true },
+    });
+
+    expect(response.body).toBe(chunks.join(""));
+    // due chunk di contenuto ritardati, il [DONE] mai
+    expect(sleepDelays).toHaveLength(2);
+    expect(Math.max(...sleepDelays)).toBeLessThanOrEqual(45);
+    expect(Math.min(...sleepDelays)).toBeGreaterThanOrEqual(0);
   });
 
   it("propaga gli errori dell'upstream senza alterarli", async () => {

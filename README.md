@@ -25,7 +25,7 @@ la attraversi.
 | Memoria a breve termine | `frequency_penalty`, `presence_penalty` | cosa continua a tornare, cosa viene lasciato cadere |
 | Ippocampo | riscrittura del contesto | taglia i turni vecchi e il modello ha amnesia anterograda |
 | Sinapsi forzate | `logit_bias` | token specifici con più (o meno) probabilità di accendersi |
-| Ritmo | jitter sullo stream | esitazioni e accelerazioni dell'output (dichiarato, in arrivo) |
+| Ritmo | jitter sullo stream | esitazioni e accelerazioni dell'output, senza toccare il testo |
 
 Metti queste manopole in un profilo YAML, aggiungi una curva temporale e ottieni una sostanza:
 `euforia-creativa` alza temperatura e presenza, `amnesia-anterograda` sfoltisce la history,
@@ -61,8 +61,9 @@ Una sostanza non è un interruttore: ha **latenza** (onset), **salita** (peak), 
   piena.
 - **Redosing**: cambiare sostanza nella stessa sessione azzera il timer e riparte dall'onset, come
   un'altra somministrazione.
-- **Referto**: `X-Effect-Envelope` dice quanto sei in effetto *adesso*; il trip report di sessione
-  (in roadmap) racconterà cosa ha fatto la sostanza, non solo cosa hai chiesto.
+- **Referto**: `X-Effect-Envelope` e `X-Effect-Phase` dicono quanto sei in effetto *adesso*; il
+  trip report (`GET /v1/sessions/:id/trip-report`) racconta cosa ha fatto la sostanza, non solo cosa
+  hai chiesto.
 
 ## Cosa questo progetto non è
 
@@ -231,6 +232,8 @@ Togli l'header `x-substance-id` e ottieni il modello normale: il proxy diventa i
 | GET | `/healthz` | stato del servizio |
 | GET | `/v1/models` | catalogo modelli, id `provider/modello` |
 | GET | `/v1/substances` | catalogo sostanze (nome, famiglia, durata, effetti) |
+| GET | `/v1/substances/:id/trip-report` | referto simulato con `?dose=` e `?elapsed=` |
+| GET | `/v1/sessions/:id/trip-report` | referto della sessione reale, con conteggio richieste |
 | POST | `/v1/chat/completions` | proxy chat, `stream: true` supportato |
 
 Header di dosaggio, tutti opzionali:
@@ -300,9 +303,9 @@ scartate (FastAPI, Axum, Go) in [`docs/ARCHITETTURA.md`](./docs/ARCHITETTURA.md)
 pnpm test       # 46 test
 ```
 
-Stato attuale (**M3**): proxy funzionante con streaming SSE in pass-through, motore sostanze con
-curva dose/tempo, distorsori `params`, `context`, `logit`, catalogo `/v1/substances` e cinque
-profili.
+Stato attuale (**M4**): proxy con streaming SSE e **jitter ritmico** deterministico, motore sostanze
+con curva dose/tempo, distorsori `params`, `context`, `logit`, catalogo `/v1/substances`, **trip
+report** per sostanza e per sessione, cinque profili inclusi.
 
 ## Sicurezza e limiti
 
@@ -312,8 +315,8 @@ profili.
 - Le sessioni di dosaggio vivono in memoria: riavviando il proxy la somministrazione riparte.
 - `logit_bias` lavora su **token id** e richiede di conoscere il tokenizer dell'upstream: i profili
   inclusi tengono il logit disattivato finché gli id non sono verificati.
-- Il jitter ritmico dell'output (`streaming.jitter`) è dichiarato nei profili ma non ancora
-  applicato ai chunk: oggi l'alterazione è sui parametri e sul contesto, non sul ritmo.
+- Il jitter (`streaming.jitter`) aggiunge al massimo **90 ms per chunk** e non tocca il contenuto:
+  cambia il ritmo, non il testo. Il token finale `[DONE]` non viene mai ritardato.
 - È uno strumento creativo: non usarlo per produrre contenuti presentati come fatti verificati.
 
 ## Documentazione
@@ -325,7 +328,6 @@ profili.
 
 ## Roadmap
 
-- **M4** — jitter sullo streaming e *trip report* di sessione (riepilogo leggibile di cosa ha fatto la sostanza)
 - **M5** — distorsore `logit` con token id reali (tiktoken / tokenizer dell'upstream)
 - **M6** — playground web: dosaggio live, grafico della curva, catalogo sostanze editabile
 - **M7** — persistenza delle sessioni e metriche per sostanza

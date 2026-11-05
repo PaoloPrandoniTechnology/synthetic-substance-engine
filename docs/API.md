@@ -10,6 +10,8 @@ esistente funziona senza modifiche e, senza header di dosaggio, il proxy è un p
 | GET | `/healthz` | stato del servizio |
 | GET | `/v1/models` | catalogo modelli, id nel formato `provider/modello` |
 | GET | `/v1/substances` | catalogo sostanze (nome, famiglia, durata, effetti) |
+| GET | `/v1/substances/:id/trip-report` | referto simulato: `?dose=0..1` e `?elapsed=secondi` |
+| GET | `/v1/sessions/:id/trip-report` | referto della sessione reale (timer e richieste) |
 | POST | `/v1/chat/completions` | proxy chat, `stream: true` supportato |
 
 ## Header di dosaggio (opzionali)
@@ -49,6 +51,36 @@ viene moltiplicata per quel valore. `X-Substance-Elapsed` permette di saltare di
 | `X-Dose` | `0.8` | dose effettiva |
 | `X-Substance-Elapsed` | `40` | secondi di curva applicati |
 | `X-Effect-Envelope` | `0.612` | inviluppo corrente `0..1` |
+| `X-Effect-Phase` | `plateau` | fase della curva: `latente`, `salita`, `plateau`, `svanimento`, `fine` |
+
+## Jitter dello streaming
+
+`streaming.jitter` (0..1) introduce un ritardo deterministico tra i chunk SSE, in
+`[0, jitter × 90 ms]`, derivato da `hash(seed + indice chunk)`. Stesso profilo, stesso ritmo.
+Non altera il contenuto e non ritarda il `[DONE]`; con `jitter: 0` (default) lo streaming resta
+byte-identico all'upstream.
+
+## Trip report
+
+```bash
+# simulazione: nessuna sessione necessaria
+curl "http://127.0.0.1:8787/v1/substances/euforia-creativa/trip-report?dose=0.8&elapsed=60"
+
+# sessione reale, dopo qualche richiesta con X-Session-Id
+curl "http://127.0.0.1:8787/v1/sessions/la-mia-sessione/trip-report"
+```
+
+Risposta con `phase`, `envelope`, `percent`, `applied` (delta concreti di ogni distorsore) e
+`summary`, una frase leggibile tipo:
+
+```json
+{
+  "substanceId": "euforia-creativa",
+  "phase": "plateau",
+  "percent": 56,
+  "summary": "Euforia Creativa — plateau (56%) · dose 0.8 · 60s dall'inizio: temperatura +0.2, presence 0.22, fissazione 2%."
+}
+```
 
 ## Tetti non aggirabili dai profili
 

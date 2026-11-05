@@ -7,13 +7,21 @@ import type { DistortionCaps } from "./params.js";
 /** Quanto il rumore può spostare un bias curato (30% della sua intensità). */
 const NOISE_RATIO = 0.3;
 
+/**
+ * Miscelatore 32-bit deterministico: distribuzione uniforme anche su indici piccoli,
+ * cosa che un semplice xorshift non garantisce (collassava su valori 1..10).
+ */
+export function hash32(seed: number, value: number): number {
+  let hash = (Math.imul(seed, 0x9e3779b1) + value + 0x85ebca6b) >>> 0;
+  hash = Math.imul(hash ^ (hash >>> 16), 0x21f0aaad) >>> 0;
+  hash = Math.imul(hash ^ (hash >>> 15), 0x735a2d97) >>> 0;
+  hash = (hash ^ (hash >>> 15)) >>> 0;
+  return hash / 0x1_0000_0000;
+}
+
 /** Rumore deterministico in [-1, 1] derivato da seed e token id (nessun Math.random). */
 export function hashNoise(seed: number, tokenId: number): number {
-  let hash = (seed ^ (tokenId + 0x9e3779b9)) >>> 0;
-  hash = (hash ^ (hash << 13)) >>> 0;
-  hash = (hash ^ (hash >> 17)) >>> 0;
-  hash = (hash ^ (hash << 5)) >>> 0;
-  return (hash / 0xffffffff) * 2 - 1;
+  return hash32(seed, tokenId) * 2 - 1;
 }
 
 /**

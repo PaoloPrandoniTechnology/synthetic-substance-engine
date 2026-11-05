@@ -3,13 +3,16 @@ import { z } from "zod";
 import { applyContext } from "../../distorters/context.js";
 import { applyLogit } from "../../distorters/logit.js";
 import { applyParams, type DistortionCaps } from "../../distorters/params.js";
-import { computeFactors } from "../../engine/metabolism.js";
+import { jitterDelayMs } from "../../distorters/streaming.js";
+import { computeFactors, type Factors } from "../../engine/metabolism.js";
 import type { SubstanceRegistry } from "../../engine/registry.js";
 import type { SessionStore } from "../../engine/session.js";
+import type { Substance } from "../../engine/substance.js";
 import type { ProvidersConfig } from "../../providers/config.js";
 import { createProviderClient, resolveModel } from "../../providers/index.js";
 import { AppError } from "../../shared/errors.js";
 import type { ChatCompletionRequest } from "../../shared/types.js";
+import { effectPhase } from "../../telemetry/trip-report.js";
 
 const ChatMessageSchema = z.looseObject({
   role: z.enum(["system", "user", "assistant", "tool", "developer"]),
@@ -33,6 +36,8 @@ export interface ChatRouteDeps {
   sessions: SessionStore;
   caps: DistortionCaps;
   env: Record<string, string | undefined>;
+  /** Iniettabile nei test: nessuna attesa reale. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 interface DosingInput {
@@ -41,6 +46,11 @@ interface DosingInput {
   sessionKey: string;
   elapsedOverride?: number;
 }
+
+const defaultSleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 function firstHeader(value: string | string[] | undefined): string | undefined {
   if (typeof value === "string" && value.length > 0) {
@@ -86,10 +96,10 @@ function readDosing(request: FastifyRequest): DosingInput {
     elapsedOverride = parsed;
   }
 
+  const substanceId = firstHeader(request.headers["x-substance-id"]);
+
   return {
-    ...(firstHeader(request.headers["x-substance-id"]) !== undefined
-      ? { substanceId: firstHeader(request.headers["x-substance-id"]) as string }
-      : {}),
+    ...(substanceId !== undefined ? { substanceId } : {}),
     dose,
     sessionKey: firstHeader(request.headers["x-session-id"]) ?? "default",
     ...(elapsedOverride !== undefined ? { elapsedOverride } : {}),
@@ -116,6 +126,7 @@ export function registerChatCompletionsRoute(app: FastifyInstance, deps: ChatRou
     const dosing = readDosing(request);
 
     let outgoing = body;
+    let active: { substance: Substance; factors: Factors; elapsed: number } | undefined;
     const responseHeaders: Record<string, string> = {};
 
     if (dosing.substanceId !== undefined) {
@@ -142,10 +153,12 @@ export function registerChatCompletionsRoute(app: FastifyInstance, deps: ChatRou
         deps.caps,
       );
 
+      active = { substance, factors, elapsed };
       responseHeaders["x-substance-id"] = substance.id;
       responseHeaders["x-dose"] = String(dosing.dose);
       responseHeaders["x-substance-elapsed"] = String(Math.round(elapsed));
       responseHeaders["x-effect-envelope"] = factors.envelope.toFixed(3);
+      responseHeaders["x-effect-phase"] = effectPhase(substance, elapsed);
     }
 
     const client = createProviderClient(target.provider);
@@ -205,6 +218,12 @@ export function registerChatCompletionsRoute(app: FastifyInstance, deps: ChatRou
       return reply;
     }
 
+    const sleep = deps.sleep ?? defaultSleep;
+    const jitter = active?.factors.streaming.jitter ?? 0;
+    const jitterSeed = active?.substance.distortions.streaming?.seed ?? 1;
+    const decoder = new TextDecoder();
+    let chunkIndex = 0;
+
     const reader = upstream.body.getReader();
     try {
       for (;;) {
@@ -213,6 +232,14 @@ export function registerChatCompletionsRoute(app: FastifyInstance, deps: ChatRou
           break;
         }
         if (chunk.value) {
+          // Il jitter cambia il ritmo dell'uscita, mai il contenuto: [DONE] non si tocca.
+          if (jitter > 0 && !decoder.decode(chunk.value).includes("[DONE]")) {
+            const delay = jitterDelayMs(jitter, jitterSeed, chunkIndex);
+            chunkIndex += 1;
+            if (delay > 0) {
+              await sleep(delay);
+            }
+          }
           reply.raw.write(chunk.value);
         }
       }

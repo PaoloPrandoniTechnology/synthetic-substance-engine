@@ -8,6 +8,7 @@ import { registerErrorHandler } from "./middleware/errors.js";
 import { registerChatCompletionsRoute } from "./routes/chat-completions.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerModelRoutes } from "./routes/models.js";
+import { registerReportRoutes } from "./routes/reports.js";
 import { registerSubstanceRoutes } from "./routes/substances.js";
 
 export interface BuildAppOptions {
@@ -18,6 +19,8 @@ export interface BuildAppOptions {
   registry?: SubstanceRegistry;
   sessions?: SessionStore;
   env?: Record<string, string | undefined>;
+  /** Iniettabile nei test: il jitter non attende davvero. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export async function buildApp({
@@ -27,6 +30,7 @@ export async function buildApp({
   registry = new SubstanceRegistry(),
   sessions = new SessionStore(),
   env = process.env,
+  sleep,
 }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger ?? { level: config.logLevel },
@@ -41,7 +45,8 @@ export async function buildApp({
   registerHealthRoutes(app);
   registerModelRoutes(app, providers);
   registerSubstanceRoutes(app, registry);
-  registerChatCompletionsRoute(app, { providers, registry, sessions, caps, env });
+  registerReportRoutes(app, { registry, sessions });
+  registerChatCompletionsRoute(app, { providers, registry, sessions, caps, env, sleep });
 
   return app;
 }

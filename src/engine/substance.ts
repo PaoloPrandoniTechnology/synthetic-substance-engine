@@ -36,6 +36,8 @@ const ContextDistortionSchema = z.strictObject({
 
 const StreamingDistortionSchema = z.strictObject({
   jitter: ZeroToOne.default(0),
+  /** Seed del jitter: stesso seed, stesso ritmo. */
+  seed: z.number().int().nonnegative().default(1),
 });
 
 const SubstanceSchema = z.strictObject({
