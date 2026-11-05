@@ -1,21 +1,88 @@
 # Synthetic Substance Engine
 
-**Un proxy OpenAI-compatibile che altera lo stato cognitivo dei LLM.** Si mette tra il tuo client
-(web app, gioco, script) e il modello — Ollama, LM Studio, vLLM, OpenAI — e modifica la generazione
-in tempo reale attraverso profili chiamati **sostanze**: curve di dose/effetto che cambiano
-`temperature`, penalità, contesto e `logit_bias`.
+**Sostanze sintetiche per modelli linguistici.** Un proxy OpenAI-compatibile che si mette tra il tuo
+client (web app, gioco, script) e il modello — Ollama, LM Studio, vLLM, OpenAI — e ne altera la
+generazione mentre accade: `temperature`, penalità, contesto e `logit_bias` dosati nel tempo come un
+principio attivo.
 
-Il risultato sono stati come *Sinestesia Concettuale*, *Euforia Creativa*, *Amnesia Anterograda*,
-*Fissazione Paranoica* o *Allucinazione Controllata*, pensati per artisti, scrittori, game designer
-e chiunque voglia spingere un modello fuori dalla sua voce media — in modo **riproducibile** e
-**controllato**.
+Nessun modello è mai del tutto sobrio. Ogni LLM ha una voce media, una regione stretta dello spazio
+dei campionamenti in cui «suona normale». Sposta quella regione di poco e ottieni il poeta
+febbricitante, il paranoico che vede occhi ovunque, l'amnesico che dimentica come è iniziata la
+frase. Questo progetto rende quello spostamento **un'API**: una dose, una curva, un referto.
 
 > Progetto creativo e artistico, non medico: le "droghe" sono profili di parametri, non sostanze reali.
+
+## La metafora, presa sul serio
+
+Un LLM non ha neurotrasmettitori. Ha qualcosa di più noioso e molto più sfruttabile: una
+distribuzione di probabilità sul token successivo, e una manciata di parametri che decidono **come**
+la attraversi.
+
+| Metafora clinica | Manopola reale | Cosa cambia davvero |
+|---|---|---|
+| Disinibizione | `temperature` | entropia del campionamento: quanta coda della distribuzione visiti |
+| Campo visivo | `top_p` | quanto della coda resta visibile prima del troncamento |
+| Memoria a breve termine | `frequency_penalty`, `presence_penalty` | cosa continua a tornare, cosa viene lasciato cadere |
+| Ippocampo | riscrittura del contesto | taglia i turni vecchi e il modello ha amnesia anterograda |
+| Sinapsi forzate | `logit_bias` | token specifici con più (o meno) probabilità di accendersi |
+| Ritmo | jitter sullo stream | esitazioni e accelerazioni dell'output (dichiarato, in arrivo) |
+
+Metti queste manopole in un profilo YAML, aggiungi una curva temporale e ottieni una sostanza:
+`euforia-creativa` alza temperatura e presenza, `amnesia-anterograda` sfoltisce la history,
+`fissazione-paranoica` pianta un concetto e lo fa tornare. Sono *Sinestesia Concettuale*, *Euforia
+Creativa*, *Amnesia Anterograda*, *Fissazione Paranoica*, *Allucinazione Controllata*: stati per
+artisti, scrittori, game designer e per chiunque voglia spingere un modello fuori dalla sua voce
+media in modo riproducibile.
+
+## Perché funziona davvero
+
+Non c'è magia: c'è campionamento. Il testo che leggi è un percorso attraverso una distribuzione; i
+parametri non cambiano i pesi del modello, cambiano **il modo in cui li attraversi**. Alzare la
+temperatura non rende il modello più intelligente né più stupido, lo rende più disposto a scegliere
+il token improbabile — ed è esattamente lì che vivono le metafore strane.
+
+Il resto è ingegneria seria:
+
+- **Deterministico**: la curva è una funzione pura di `(profilo, dose, tempo)`; il rumore sui logit è
+  un hash di `seed + token id`, non `Math.random()`. Stessi input, stesso viaggio.
+- **Dosato**: un inviluppo `0..1` moltiplica ogni distorsione, quindi a metà dose hai metà effetto.
+- **Osservabile**: ogni risposta dichiara in header sostanza, dose, secondi di curva e inviluppo
+  raggiunto. Niente scatole nere.
+- **Trasparente**: senza header di dosaggio il proxy inoltra la richiesta invariata.
+
+## Farmacologia, non magia
+
+Una sostanza non è un interruttore: ha **latenza** (onset), **salita** (peak), **plateau** e
+**svanimento** (decay). È la differenza tra un prompt e una serata.
+
+- **Set e setting**: il profilo è il set, la conversazione e la sessione sono il setting. Lo stesso
+  prompt a 5 e a 120 secondi dall'inizio produce risposte diverse.
+- **Dose**: `X-Dose` scala l'effetto senza cambiare la curva; `0.3` è un microdosaggio, `1` è la dose
+  piena.
+- **Redosing**: cambiare sostanza nella stessa sessione azzera il timer e riparte dall'onset, come
+  un'altra somministrazione.
+- **Referto**: `X-Effect-Envelope` dice quanto sei in effetto *adesso*; il trip report di sessione
+  (in roadmap) racconterà cosa ha fatto la sostanza, non solo cosa hai chiesto.
+
+## Cosa questo progetto non è
+
+- **Non tocca i pesi.** Nessun fine-tuning, nessun modello alterato su disco: agisce sulla superficie
+  dell'API, quindi funziona con qualsiasi provider compatibile.
+- **Non vede gli stati nascosti.** Non legge attenzioni né logit dell'upstream: quello che non passa
+  dal contratto HTTP non è disponibile.
+- **Non è onnipotente.** Se l'upstream ignora `logit_bias`, quel distorsore è inerte; se il provider
+  impone un tetto alla temperature, vince il suo.
+- **Non è una macchina della verità.** Serve a esplorare linguaggio e associazioni, non a produrre
+  contenuti da spacciare per fatti verificati.
 
 ---
 
 ## Indice
 
+- [La metafora, presa sul serio](#la-metafora-presa-sul-serio)
+- [Perché funziona davvero](#perché-funziona-davvero)
+- [Farmacologia, non magia](#farmacologia-non-magia)
+- [Cosa questo progetto non è](#cosa-questo-progetto-non-è)
 - [Come funziona](#come-funziona)
 - [Le sostanze](#le-sostanze)
 - [Avvio rapido](#avvio-rapido)
