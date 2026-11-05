@@ -8,6 +8,7 @@ import { registerErrorHandler } from "./middleware/errors.js";
 import { registerChatCompletionsRoute } from "./routes/chat-completions.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerModelRoutes } from "./routes/models.js";
+import { registerPlaygroundRoutes } from "./routes/playground.js";
 import { registerReportRoutes } from "./routes/reports.js";
 import { registerSubstanceRoutes } from "./routes/substances.js";
 
@@ -44,6 +45,7 @@ export async function buildApp({
   registerErrorHandler(app);
   registerHealthRoutes(app);
   registerModelRoutes(app, providers);
+  registerPlaygroundRoutes(app);
   registerSubstanceRoutes(app, registry);
   registerReportRoutes(app, { registry, sessions });
   registerChatCompletionsRoute(app, { providers, registry, sessions, caps, env, sleep });

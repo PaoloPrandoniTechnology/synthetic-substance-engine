@@ -189,6 +189,26 @@ ollama pull llama3.1:8b
 Il catalogo `config/providers.yaml` punta già a Ollama locale, LM Studio (`127.0.0.1:1234`) e
 OpenAI cloud (che richiede `OPENAI_API_KEY`).
 
+Apri **http://127.0.0.1:8787/playground**: è il modo più veloce per capire il progetto senza
+scrivere una riga di codice.
+
+## Playground
+
+La pagina `http://127.0.0.1:8787/playground` è servita dal proxy stesso (una sola pagina statica,
+nessun bundler) e parla con le stesse API che useresti da codice:
+
+- **catalogo** a sinistra: sostanze, famiglia e durata della curva;
+- **dose e tempo**: due slider che muovono l'inviluppo, con riproduzione automatica a 1×, 8× o 30×;
+- **curva reale**: 90 campioni di `/v1/substances/:id/trip-report`, quindi quello che vedi è
+esattamente il calcolo del server, non una formula duplicata nel browser;
+- **manopole**: temperatura, `top_p`, penalty, amnesia, fissazione, sinestesia, logit e jitter, con il
+referto in una frase;
+- **prova una richiesta**: manda un prompt a `/v1/chat/completions` con la dose corrente negli header
+e mostra la risposta in streaming insieme a `X-Effect-Phase`, `X-Effect-Envelope` e `X-Logit-Status`.
+
+Il pannello di prova richiede un provider raggiungibile (Ollama locale o `OPENAI_API_KEY`); il resto
+funziona senza modelli configurati.
+
 ## Prima chiamata
 
 Verifica che tutto risponda:
@@ -303,10 +323,10 @@ scartate (FastAPI, Axum, Go) in [`docs/ARCHITETTURA.md`](./docs/ARCHITETTURA.md)
 pnpm test       # suite completa: unit + integrazione HTTP
 ```
 
-Stato attuale (**M5**): proxy con streaming SSE e **jitter ritmico** deterministico, motore sostanze
+Stato attuale (**M6**): proxy con streaming SSE e **jitter ritmico** deterministico, motore sostanze
 con curva dose/tempo, distorsori `params`, `context`, `logit` con **tokenizer reale** (`cl100k_base`,
 `o200k_base`), catalogo `/v1/substances`, **trip report** per sostanza e per sessione, cinque profili
-inclusi.
+inclusi e un **playground web** su `/playground` per dosare dal browser.
 
 ## Sicurezza e limiti
 
@@ -331,7 +351,7 @@ inclusi.
 
 ## Roadmap
 
-- **M6** — playground web: dosaggio live, grafico della curva, catalogo sostanze editabile
+- **M7** — catalogo sostanze editabile dal playground, con validazione prima del salvataggio
 - **M7** — persistenza delle sessioni e metriche per sostanza
 
 ---

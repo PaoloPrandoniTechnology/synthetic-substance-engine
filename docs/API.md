@@ -8,6 +8,7 @@ esistente funziona senza modifiche e, senza header di dosaggio, il proxy è un p
 | Metodo | Percorso | Descrizione |
 |---|---|---|
 | GET | `/healthz` | stato del servizio |
+| GET | `/playground` | interfaccia web per dosare dal browser (`/` reindirizza qui) |
 | GET | `/v1/models` | catalogo modelli, id nel formato `provider/modello` |
 | GET | `/v1/substances` | catalogo sostanze (nome, famiglia, durata, effetti) |
 | GET | `/v1/substances/:id/trip-report` | referto simulato: `?dose=0..1` e `?elapsed=secondi` |
