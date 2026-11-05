@@ -16,5 +16,7 @@ providers:
     kind: openai
     baseUrl: https://api.openai.com/v1
     apiKeyEnv: OPENAI_API_KEY
+    # Vocabolario dell'upstream: abilita il distorsore logit per i profili che lo dichiarano
+    tokenizer: o200k_base
     models:
       - gpt-4o-mini

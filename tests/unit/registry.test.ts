@@ -89,7 +89,7 @@ distortions:
     expect(() => parseSubstance(yaml)).toThrow(/fixationToken/);
   });
 
-  it("richiede token id quando la modalità logit è attiva", () => {
+  it("richiede token id o parole quando la modalità logit è attiva", () => {
     const yaml = `
 schema: 1
 id: prova
@@ -105,7 +105,7 @@ distortions:
     mode: token-noise
     strength: 0.5
 `;
-    expect(() => parseSubstance(yaml)).toThrow(/almeno un token id/);
+    expect(() => parseSubstance(yaml)).toThrow(/richiede token id o parole/);
   });
 });
 

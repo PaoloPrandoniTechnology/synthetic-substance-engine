@@ -52,6 +52,38 @@ viene moltiplicata per quel valore. `X-Substance-Elapsed` permette di saltare di
 | `X-Substance-Elapsed` | `40` | secondi di curva applicati |
 | `X-Effect-Envelope` | `0.612` | inviluppo corrente `0..1` |
 | `X-Effect-Phase` | `plateau` | fase della curva: `latente`, `salita`, `plateau`, `svanimento`, `fine` |
+| `X-Logit-Status` | `skipped-no-tokenizer` | esito del logit: `applied`, `skipped-no-tokenizer`, `skipped-tokenizer-mismatch` |
+
+## Logit e tokenizer
+
+`logit_bias` parla solo il vocabolario del modello: gli id sono numeri, non parole. Per questo il
+profilo dichiara **parole** e il proxy le compila, mentre il provider dichiara il proprio tokenizer.
+Se i due non coincidono il distorsore viene **saltato**, mai indovinato.
+
+```yaml
+# config/providers.yaml
+- id: openai-cloud
+  kind: openai
+  tokenizer: o200k_base
+```
+
+```yaml
+# config/substances/allucinazione-controllata.yaml
+logit:
+  mode: associative-drift
+  strength: 0.40
+  targetTokenizer: o200k_base
+  tokens:
+    - text: "sogno"
+      bias: 8
+    - text: "specchio"
+      bias: 5
+      target: all   # tutti i sub-token, non solo il primo
+```
+
+`X-Logit-Status` in risposta dice cosa è successo: `applied`, `skipped-no-tokenizer` (provider senza
+tokenizer) o `skipped-tokenizer-mismatch` (vocabolari diversi). Token id manuali (`tokenIds`) restano
+possibili per chi conosce già il vocabolario dell'upstream.
 
 ## Jitter dello streaming
 

@@ -1,0 +1,18 @@
+schema: 1
+id: test-tokens
+name: Test Tokens
+family: delirante
+intensity: 1
+onsetSeconds: 0
+peakSeconds: 0
+plateauSeconds: 600
+decaySeconds: 60
+distortions:
+  logit:
+    mode: associative-drift
+    strength: 0.5
+    maxBiasedTokens: 8
+    targetTokenizer: cl100k_base
+    tokens:
+      - text: "colore"
+        bias: 10

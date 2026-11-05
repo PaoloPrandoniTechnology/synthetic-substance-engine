@@ -51,6 +51,27 @@ contraindications:
   - "compiti che richiedono precisione fattuale"
 ```
 
+### Logit: parole o token id
+
+`logit.tokens` è la forma preferita: si scrive la parola, il proxy la compila con il tokenizer
+dichiarato in `targetTokenizer` (`cl100k_base` o `o200k_base`).
+
+```yaml
+logit:
+  mode: associative-drift
+  strength: 0.40
+  targetTokenizer: o200k_base
+  tokens:
+    - text: "sogno"
+      bias: 8
+      target: first   # default: solo il primo token
+```
+
+`tokenIds` resta disponibile per chi conosce già il vocabolario dell'upstream. Regole: dichiarare
+sempre `targetTokenizer` quando si usano `tokens`; usare id manuali solo con un tokenizer verificato;
+ricordare che su un provider senza tokenizer dichiarato il distorsore viene saltato (in risposta
+compare `X-Logit-Status`).
+
 ## 2. Regole di validazione (bloccanti)
 
 1. `schema` deve essere `1`; versioni diverse richiedono una migrazione documentata.

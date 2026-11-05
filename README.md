@@ -300,12 +300,13 @@ scartate (FastAPI, Axum, Go) in [`docs/ARCHITETTURA.md`](./docs/ARCHITETTURA.md)
 ## Test e stato
 
 ```bash
-pnpm test       # 46 test
+pnpm test       # suite completa: unit + integrazione HTTP
 ```
 
-Stato attuale (**M4**): proxy con streaming SSE e **jitter ritmico** deterministico, motore sostanze
-con curva dose/tempo, distorsori `params`, `context`, `logit`, catalogo `/v1/substances`, **trip
-report** per sostanza e per sessione, cinque profili inclusi.
+Stato attuale (**M5**): proxy con streaming SSE e **jitter ritmico** deterministico, motore sostanze
+con curva dose/tempo, distorsori `params`, `context`, `logit` con **tokenizer reale** (`cl100k_base`,
+`o200k_base`), catalogo `/v1/substances`, **trip report** per sostanza e per sessione, cinque profili
+inclusi.
 
 ## Sicurezza e limiti
 
@@ -313,8 +314,10 @@ report** per sostanza e per sessione, cinque profili inclusi.
   limiti del contratto OpenAI (`temperature` 0..2, `top_p` 0.01..1, penalità −2..2).
 - I profili sono dati, non codice: un YAML condiviso non può eseguire nulla.
 - Le sessioni di dosaggio vivono in memoria: riavviando il proxy la somministrazione riparte.
-- `logit_bias` lavora su **token id** e richiede di conoscere il tokenizer dell'upstream: i profili
-  inclusi tengono il logit disattivato finché gli id non sono verificati.
+- `logit_bias` esiste solo se il provider dichiara il proprio tokenizer e questo **coincide** con
+  quello del profilo (`cl100k_base` / `o200k_base`); altrimenti il distorsore viene saltato e
+  `X-Logit-Status` dice perché. Su Ollama e LM Studio il vocabolario è del modello locale: lì il
+  logit resta inerte finché non dichiari il tokenizer giusto in `config/providers.yaml`.
 - Il jitter (`streaming.jitter`) aggiunge al massimo **90 ms per chunk** e non tocca il contenuto:
   cambia il ritmo, non il testo. Il token finale `[DONE]` non viene mai ritardato.
 - È uno strumento creativo: non usarlo per produrre contenuti presentati come fatti verificati.
@@ -328,7 +331,6 @@ report** per sostanza e per sessione, cinque profili inclusi.
 
 ## Roadmap
 
-- **M5** — distorsore `logit` con token id reali (tiktoken / tokenizer dell'upstream)
 - **M6** — playground web: dosaggio live, grafico della curva, catalogo sostanze editabile
 - **M7** — persistenza delle sessioni e metriche per sostanza
 

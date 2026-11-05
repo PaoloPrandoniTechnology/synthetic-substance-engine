@@ -14,6 +14,19 @@ distortions:
     maxTemperature: 1.6
   context:
     synesthesia: 0.35
+  logit:
+    mode: associative-drift
+    strength: 0.40
+    maxBiasedTokens: 8
+    # Valido solo su provider con lo stesso tokenizer dichiarato (es. openai-cloud)
+    targetTokenizer: o200k_base
+    tokens:
+      - text: "sogno"
+        bias: 8
+      - text: "ombra"
+        bias: 6
+      - text: "specchio"
+        bias: 5
 effects:
   - "dettagli inventati ma coerenti, tenuti dentro i bordi della scena"
   - "deriva onirica senza perdere il filo del discorso"

@@ -1,5 +1,11 @@
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
+import {
+  encodeText,
+  isSupportedTokenizer,
+  SUPPORTED_TOKENIZERS,
+  type TokenizerName,
+} from "./tokenizer.js";
 
 const ZeroToOne = z.number().min(0).max(1);
 
@@ -17,14 +23,23 @@ const TokenBiasSchema = z.strictObject({
   bias: z.number().int().min(-100).max(100),
 });
 
+const LogitTokenSchema = z.strictObject({
+  /** Parola o frase da spingere: viene compilata in token id dal tokenizer dichiarato. */
+  text: z.string().min(1),
+  bias: z.number().int().min(-100).max(100),
+  /** "first" = solo il primo token, "all" = tutti i sub-token della parola. */
+  target: z.enum(["first", "all"]).default("first"),
+});
+
 const LogitDistortionSchema = z.strictObject({
   mode: z.enum(["off", "token-noise", "associative-drift"]).default("off"),
   strength: ZeroToOne.default(0),
   maxBiasedTokens: z.number().int().min(1).max(1000).default(64),
-  /** Tokenizer a cui si riferiscono gli `tokenIds` (documentazione, non tokenizzazione). */
+  /** Tokenizer a cui si riferiscono token id e parole (valida il provider a runtime). */
   targetTokenizer: z.string().min(1).optional(),
   seed: z.number().int().nonnegative().default(1),
   tokenIds: z.array(TokenBiasSchema).default([]),
+  tokens: z.array(LogitTokenSchema).default([]),
 });
 
 const ContextDistortionSchema = z.strictObject({
@@ -61,6 +76,14 @@ const SubstanceSchema = z.strictObject({
 });
 
 export type Substance = z.infer<typeof SubstanceSchema>;
+export type TokenBias = z.infer<typeof TokenBiasSchema>;
+
+export type TokenResolver = (text: string, tokenizer: TokenizerName) => number[];
+
+export interface ParseSubstanceOptions {
+  /** Iniettabile nei test per non dipendere dal tokenizer reale. */
+  resolveTokens?: TokenResolver;
+}
 
 export function substanceDuration(substance: Substance): number {
   return (
@@ -71,11 +94,60 @@ export function substanceDuration(substance: Substance): number {
   );
 }
 
+function compileTokens(
+  tokens: readonly z.infer<typeof LogitTokenSchema>[],
+  tokenizer: TokenizerName,
+  resolve: TokenResolver,
+  source: string,
+): TokenBias[] {
+  const compiled: TokenBias[] = [];
+
+  for (const token of tokens) {
+    const ids = resolve(token.text, tokenizer);
+
+    if (ids.length === 0) {
+      throw new Error(`${source}: "${token.text}" non produce alcun token`);
+    }
+
+    const first = ids[0];
+
+    if (token.target === "all") {
+      for (const id of ids) {
+        compiled.push({ id, bias: token.bias });
+      }
+    } else if (first !== undefined) {
+      compiled.push({ id: first, bias: token.bias });
+    }
+  }
+
+  return compiled;
+}
+
+/** Un token id può arrivare da più regole: vince il bias con intensità maggiore. */
+function mergeTokenIds(base: readonly TokenBias[], extra: readonly TokenBias[]): TokenBias[] {
+  const merged = new Map<number, number>();
+
+  for (const item of [...base, ...extra]) {
+    const existing = merged.get(item.id);
+    if (existing === undefined || Math.abs(item.bias) > Math.abs(existing)) {
+      merged.set(item.id, item.bias);
+    }
+  }
+
+  return [...merged.entries()].map(([id, bias]) => ({ id, bias }));
+}
+
+const defaultResolver: TokenResolver = (text, tokenizer) => encodeText(text, tokenizer);
+
 /**
  * Valida un profilo sostanza (YAML) applicando anche le regole trasversali
  * che lo schema da solo non copre. Lancia un errore con il nome della sorgente.
  */
-export function parseSubstance(raw: string, source = "sostanza"): Substance {
+export function parseSubstance(
+  raw: string,
+  source = "sostanza",
+  options: ParseSubstanceOptions = {},
+): Substance {
   let document: unknown;
 
   try {
@@ -109,9 +181,37 @@ export function parseSubstance(raw: string, source = "sostanza"): Substance {
   }
 
   const logit = substance.distortions.logit;
-  if (logit && logit.mode !== "off" && logit.tokenIds.length === 0) {
-    throw new Error(`${source}: modalità logit "${logit.mode}" richiede almeno un token id`);
+
+  if (!logit) {
+    return substance;
   }
 
-  return substance;
+  if (logit.mode !== "off" && logit.tokenIds.length === 0 && logit.tokens.length === 0) {
+    throw new Error(`${source}: modalità logit "${logit.mode}" richiede token id o parole`);
+  }
+
+  if (logit.tokens.length === 0) {
+    return substance;
+  }
+
+  if (!logit.targetTokenizer) {
+    throw new Error(`${source}: il campo logit.tokens richiede targetTokenizer`);
+  }
+
+  if (!isSupportedTokenizer(logit.targetTokenizer)) {
+    throw new Error(
+      `${source}: tokenizer non supportato "${logit.targetTokenizer}" (disponibili: ${SUPPORTED_TOKENIZERS.join(", ")})`,
+    );
+  }
+
+  const resolver = options.resolveTokens ?? defaultResolver;
+  const compiled = compileTokens(logit.tokens, logit.targetTokenizer, resolver, source);
+
+  return {
+    ...substance,
+    distortions: {
+      ...substance.distortions,
+      logit: { ...logit, tokenIds: mergeTokenIds(logit.tokenIds, compiled) },
+    },
+  };
 }

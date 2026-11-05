@@ -7,6 +7,30 @@ import type { DistortionCaps } from "./params.js";
 /** Quanto il rumore può spostare un bias curato (30% della sua intensità). */
 const NOISE_RATIO = 0.3;
 
+export type LogitStatus = "off" | "applied" | "skipped-no-tokenizer" | "skipped-tokenizer-mismatch";
+
+/**
+ * Decide se il logit_bias è affidabile per questo provider.
+ * Gli id dipendono dal vocabolario: fuori dal tokenizer dichiarato sarebbero numeri a caso.
+ */
+export function logitStatus(substance: Substance, providerTokenizer?: string): LogitStatus {
+  const logit = substance.distortions.logit;
+
+  if (!logit || logit.mode === "off") {
+    return "off";
+  }
+
+  if (!logit.targetTokenizer) {
+    return "applied";
+  }
+
+  if (!providerTokenizer) {
+    return "skipped-no-tokenizer";
+  }
+
+  return providerTokenizer === logit.targetTokenizer ? "applied" : "skipped-tokenizer-mismatch";
+}
+
 /**
  * Miscelatore 32-bit deterministico: distribuzione uniforme anche su indici piccoli,
  * cosa che un semplice xorshift non garantisce (collassava su valori 1..10).

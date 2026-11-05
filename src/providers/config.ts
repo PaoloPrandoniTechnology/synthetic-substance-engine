@@ -1,12 +1,15 @@
 import { readFile } from "node:fs/promises";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
+import { isSupportedTokenizer, SUPPORTED_TOKENIZERS } from "../engine/tokenizer.js";
 
 const ProviderSchema = z.object({
   id: z.string().min(1),
   kind: z.enum(["openai", "openai-compatible", "ollama"]),
   baseUrl: z.string().min(1),
   apiKeyEnv: z.string().min(1).optional(),
+  /** Tokenizer dell'upstream: abilita il distorsore logit, se dichiarato. */
+  tokenizer: z.string().min(1).optional(),
   models: z.array(z.string().min(1)).default([]),
 });
 
@@ -57,6 +60,12 @@ export function parseProvidersConfig(raw: string): ProvidersConfig {
       new URL(provider.baseUrl);
     } catch {
       invalidConfig(`baseUrl non valido per "${provider.id}": ${provider.baseUrl}`);
+    }
+
+    if (provider.tokenizer !== undefined && !isSupportedTokenizer(provider.tokenizer)) {
+      invalidConfig(
+        `tokenizer non supportato per "${provider.id}": ${provider.tokenizer} (disponibili: ${SUPPORTED_TOKENIZERS.join(", ")})`,
+      );
     }
   }
 

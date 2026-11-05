@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { applyContext } from "../../distorters/context.js";
-import { applyLogit } from "../../distorters/logit.js";
+import { applyLogit, logitStatus } from "../../distorters/logit.js";
 import { applyParams, type DistortionCaps } from "../../distorters/params.js";
 import { jitterDelayMs } from "../../distorters/streaming.js";
 import { computeFactors, type Factors } from "../../engine/metabolism.js";
@@ -146,12 +146,12 @@ export function registerChatCompletionsRoute(app: FastifyInstance, deps: ChatRou
         deps.sessions.resolve(dosing.sessionKey, substance.id, dosing.dose).elapsedSeconds;
       const factors = computeFactors(substance, dosing.dose, elapsed);
 
-      outgoing = applyLogit(
-        applyContext(applyParams(body, factors, substance, deps.caps), factors, substance),
-        factors,
-        substance,
-        deps.caps,
-      );
+      outgoing = applyContext(applyParams(body, factors, substance, deps.caps), factors, substance);
+
+      const logitGate = logitStatus(substance, target.provider.tokenizer);
+      if (logitGate === "applied") {
+        outgoing = applyLogit(outgoing, factors, substance, deps.caps);
+      }
 
       active = { substance, factors, elapsed };
       responseHeaders["x-substance-id"] = substance.id;
@@ -159,6 +159,9 @@ export function registerChatCompletionsRoute(app: FastifyInstance, deps: ChatRou
       responseHeaders["x-substance-elapsed"] = String(Math.round(elapsed));
       responseHeaders["x-effect-envelope"] = factors.envelope.toFixed(3);
       responseHeaders["x-effect-phase"] = effectPhase(substance, elapsed);
+      if (logitGate !== "off") {
+        responseHeaders["x-logit-status"] = logitGate;
+      }
     }
 
     const client = createProviderClient(target.provider);
