@@ -44,3 +44,11 @@ Il sistema deve modellare ed erogare diverse "sostanze" software per alterare i 
 2. Proponi uno stack tecnologico idoneo per l'architettura proxy/middleware e definisci la struttura delle cartelle del progetto.
 3. Se necessario, crea la prima skill interna del progetto per definire lo standard di scrittura e struttura delle "sostanze/droghe sintetiche" (file di configurazione/script di alterazione).
 4. Richiedi la mia conferma solo se la scelta dello stack presenta dubbi architetturali, altrimenti procedi direttamente con lo scaffolding iniziale.
+
+## 🔄 Aggiornamento continuo su GitHub (OBBLIGATORIO)
+
+- **Ogni modifica va pubblicata.** Dopo aver completato e verificato un cambiamento (codice, configurazione, documentazione, screenshot), crea il commit e fai `git push` su `origin` (`PaoloPrandoniTechnology/synthetic-substance-engine`). Il repository deve sempre riflettere lo stato locale: nessun lavoro resta solo sulla macchina.
+- **Un commit per cambiamento coerente**, con messaggio in italiano e prefisso convenzionale (`feat:`, `fix:`, `style:`, `docs:`, `refactor:`, `test:`), come nella storia del repository.
+- **Prima del push:** `git status --short` per controllare cosa entra, nessun segreto (`.env`, chiavi, token) e i controlli del caso eseguiti (`pnpm lint`, `pnpm test` quando si tocca il codice).
+- **Dopo il push:** verifica l'esito (`git status -sb` senza "ahead", `git log -1 --stat`) e riporta nella risposta il ramo e l'hash pubblicati.
+- **Mai force-push** e mai riscrivere la storia già pubblicata: se il push viene rifiutato, integra con `git pull --rebase`.
