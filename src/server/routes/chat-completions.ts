@@ -150,8 +150,14 @@ export function registerChatCompletionsRoute(app: FastifyInstance, deps: ChatRou
 
     const client = createProviderClient(target.provider);
     const controller = new AbortController();
-    const onClose = (): void => controller.abort();
-    request.raw.once("close", onClose);
+    const onClose = (): void => {
+      if (!reply.raw.writableEnded) {
+        controller.abort();
+      }
+    };
+    // Node emette "close" sull'IncomingMessage appena il body è letto:
+    // per annullare l'upstream serve la chiusura della RISPOSTA.
+    reply.raw.on("close", onClose);
 
     let upstream: Response;
 
@@ -161,8 +167,9 @@ export function registerChatCompletionsRoute(app: FastifyInstance, deps: ChatRou
         { signal: controller.signal, env: deps.env },
       );
     } catch (error) {
-      request.raw.off("close", onClose);
-      throw new AppError(`Upstream non raggiungibile: ${(error as Error).message}`, {
+      reply.raw.off("close", onClose);
+      const cause = (error as { cause?: { message?: string } }).cause?.message;
+      throw new AppError(`Upstream non raggiungibile: ${cause ?? (error as Error).message}`, {
         statusCode: 502,
         type: "upstream_error",
         code: "upstream_unreachable",
@@ -171,7 +178,7 @@ export function registerChatCompletionsRoute(app: FastifyInstance, deps: ChatRou
 
     if (!outgoing.stream) {
       const text = await upstream.text();
-      request.raw.off("close", onClose);
+      reply.raw.off("close", onClose);
 
       return reply
         .status(upstream.status)
@@ -194,7 +201,7 @@ export function registerChatCompletionsRoute(app: FastifyInstance, deps: ChatRou
 
     if (!upstream.body) {
       reply.raw.end();
-      request.raw.off("close", onClose);
+      reply.raw.off("close", onClose);
       return reply;
     }
 
@@ -212,7 +219,7 @@ export function registerChatCompletionsRoute(app: FastifyInstance, deps: ChatRou
     } catch (error) {
       request.log.warn({ err: error }, "stream upstream interrotto");
     } finally {
-      request.raw.off("close", onClose);
+      reply.raw.off("close", onClose);
       reply.raw.end();
     }
 

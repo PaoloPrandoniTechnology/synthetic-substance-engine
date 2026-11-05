@@ -97,6 +97,10 @@ describe("POST /v1/chat/completions", () => {
 
     const url = fetchMock.mock.calls[0]?.[0];
     expect(String(url)).toBe("http://127.0.0.1:11434/v1/chat/completions");
+
+    // Regressione: l'abort non deve scattare alla fine del body della richiesta.
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(init?.signal?.aborted).toBe(false);
   });
 
   it("applica la sostanza e dichiara l'inviluppo raggiunto", async () => {
